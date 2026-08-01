@@ -54,6 +54,10 @@ function renderRegion(region: Region, colors: Record<string, string>, onClick: (
       );
     case "polygon":
       return <polygon key={region.id} {...common} points={region.points} />;
+    case "path":
+      return (
+        <path key={region.id} {...common} d={region.d} transform={region.transform} fillRule="evenodd" />
+      );
   }
 }
 
@@ -68,7 +72,10 @@ function renderDecor(decor: Decor, i: number) {
   if (decor.kind === "line") {
     return <line key={i} {...common} x1={decor.x1} y1={decor.y1} x2={decor.x2} y2={decor.y2} />;
   }
-  return <path key={i} {...common} d={decor.d} />;
+  if (decor.kind === "circle") {
+    return <circle key={i} {...common} cx={decor.cx} cy={decor.cy} r={decor.r} fill="#2b2440" stroke="none" />;
+  }
+  return <path key={i} {...common} d={decor.d} transform={decor.transform} />;
 }
 
 export default function ColouringSvg({
