@@ -18,6 +18,7 @@ export const ACTIVITY_STICKERS: Sticker[] = [
   { id: "great-chooser", emoji: "🤔", name: "Great Chooser" },
   { id: "letter-detective", emoji: "🔤", name: "Letter Detective" },
   { id: "work-box-champ", emoji: "🏁", name: "All-Done Champion" },
+  { id: "world-explorer", emoji: "🌍", name: "World Explorer" },
 ];
 
 export const STICKERS: Sticker[] = [...COLOURING_STICKERS, ...ACTIVITY_STICKERS];

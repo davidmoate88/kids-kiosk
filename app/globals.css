@@ -12,6 +12,8 @@
   --learn-dark: #1fa383;
   --warm: #ff9f5b;
   --warm-dark: #e97f36;
+  --places: #3ec9c0;
+  --places-dark: #24a89f;
   --danger: #ff7a7a;
 }
 
@@ -27,6 +29,8 @@
   --color-learn-dark: var(--learn-dark);
   --color-warm: var(--warm);
   --color-warm-dark: var(--warm-dark);
+  --color-places: var(--places);
+  --color-places-dark: var(--places-dark);
   --color-danger: var(--danger);
   --font-sans: var(--font-baloo);
 }
