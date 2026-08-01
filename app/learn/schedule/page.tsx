@@ -45,7 +45,7 @@ export default function SchedulePage() {
   const cardById = (id: string | null) => CARDS.find((c) => c.id === id) ?? null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🗓️" title="First, Then" subtitle={held ? `Tap a box to place "${cardById(held)?.label}"` : "Tap a card, then tap a box"} />
 

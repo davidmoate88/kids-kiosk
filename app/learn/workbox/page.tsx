@@ -62,7 +62,7 @@ export default function WorkBoxPage() {
 
   if (phase === "setup") {
     return (
-      <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
         <PageHeading
           emoji="🧺"
           title="My Work Box"
@@ -106,7 +106,7 @@ export default function WorkBoxPage() {
     const upcoming = queue.slice(index + 1);
 
     return (
-      <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
         <StickerToast sticker={justEarned} />
         <PageHeading emoji="🧺" title="My Work Box" subtitle={`${finished.length + 1} of ${queue.length}`} />
 

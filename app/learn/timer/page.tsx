@@ -65,7 +65,7 @@ export default function TimerPage() {
 
   if (total === null) {
     return (
-      <div className="min-h-screen flex flex-col items-center px-6 gap-8 max-w-2xl mx-auto">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8 max-w-3xl mx-auto">
         <PageHeading emoji="⏳" title="Timer" subtitle="How long shall we count down?" />
         <div className="grid grid-cols-2 gap-5 w-full max-w-sm">
           {PRESETS.map((p) => (

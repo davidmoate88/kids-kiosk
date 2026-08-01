@@ -101,7 +101,7 @@ export default function PatternGamePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 pt-6 gap-4 max-w-md mx-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 max-w-lg mx-auto">
       <StickerToast sticker={justEarned} />
       <div className="flex items-center justify-between w-full">
         <h1 className="text-2xl font-extrabold">🧠 Pattern Pals</h1>

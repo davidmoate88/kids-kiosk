@@ -49,11 +49,11 @@ export default function PlacesPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 gap-4 max-w-2xl mx-auto">
+    <div className="min-h-screen flex flex-col items-center px-4 gap-4 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🗺️" title="Places We've Been" subtitle="Tap a pin to see where!" />
 
-      <div className="relative isolate w-full max-w-lg" style={{ height: "58vh" }}>
+      <div className="relative isolate w-full max-w-2xl" style={{ height: "62vh" }}>
         <PlacesMap places={PLACES} onSelect={openPlace} />
       </div>
 

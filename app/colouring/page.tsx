@@ -55,41 +55,41 @@ export default function ColouringPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 gap-4 max-w-2xl mx-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🖍️" title="Colouring" />
 
-      <div className="flex gap-3 overflow-x-auto w-full px-2 pb-1">
+      <div className="flex gap-4 overflow-x-auto w-full px-2 pb-1">
         {PICTURES.map((p) => (
           <button
             key={p.id}
             onClick={() => setPictureId(p.id)}
-            className={`tap-pop shrink-0 flex flex-col items-center gap-1 px-4 py-2 rounded-2xl shadow ${
+            className={`tap-pop shrink-0 flex flex-col items-center gap-1 px-5 py-3 rounded-2xl shadow ${
               p.id === pictureId ? "bg-colouring text-white" : "bg-white"
             }`}
           >
-            <span className="text-3xl">{p.emoji}</span>
-            <span className="text-sm font-bold">{p.name}</span>
+            <span className="text-4xl">{p.emoji}</span>
+            <span className="text-base font-bold">{p.name}</span>
           </button>
         ))}
       </div>
 
-      <div className="relative w-full max-w-sm aspect-square rounded-[2rem] bg-white shadow-xl p-4">
+      <div className="relative w-full max-w-xl aspect-square rounded-[2rem] bg-white shadow-xl p-6">
         <ColouringSvg picture={picture} colors={colors} onRegionClick={paintRegion} />
         {isComplete && (
-          <div className="absolute -top-3 -right-3 text-4xl gentle-bob">✅</div>
+          <div className="absolute -top-3 -right-3 text-5xl gentle-bob">✅</div>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-3 max-w-md">
+      <div className="flex flex-wrap items-center justify-center gap-4 max-w-lg">
         {PALETTE.map((c) => (
           <button
             key={c}
             onClick={() => setSelectedColor(c)}
-            className="tap-pop w-11 h-11 rounded-full shadow-md"
+            className="tap-pop w-14 h-14 rounded-full shadow-md"
             style={{
               background: c,
-              outline: selectedColor === c ? "4px solid var(--colouring-dark)" : "3px solid rgba(0,0,0,0.15)",
+              outline: selectedColor === c ? "5px solid var(--colouring-dark)" : "3px solid rgba(0,0,0,0.15)",
               outlineOffset: 2,
             }}
             aria-label={`Colour ${c}`}
@@ -99,7 +99,7 @@ export default function ColouringPage() {
 
       <button
         onClick={clearPicture}
-        className="tap-pop mb-6 flex items-center gap-2 rounded-2xl px-6 py-3 bg-white shadow font-bold text-foreground/70"
+        className="tap-pop mb-6 flex items-center gap-2 rounded-2xl px-8 py-4 bg-white shadow font-bold text-xl text-foreground/70"
       >
         🧹 Clear
       </button>

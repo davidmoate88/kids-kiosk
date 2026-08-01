@@ -41,7 +41,7 @@ export default function PhonicsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🔤" title="Letter Sounds" subtitle="Tap a letter to hear it!" />
 
