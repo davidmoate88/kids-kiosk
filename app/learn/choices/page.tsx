@@ -45,18 +45,19 @@ export default function ChoicesPage() {
   const [selections, setSelections] = useState<Record<string, string>>({});
 
   const set = SETS.find((s) => s.id === setId)!;
-  const chosen = selections[setId];
+  const chosenId = selections[setId];
+  const chosen = set.options.find((o) => o.id === chosenId) ?? null;
 
   function choose(option: Option) {
     setSelections((prev) => ({ ...prev, [setId]: option.id }));
-    speak(`${option.label}`);
+    speak(`I want ${option.label}!`);
     award("great-chooser");
   }
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
       <StickerToast sticker={justEarned} />
-      <PageHeading emoji="🤔" title="I Choose" />
+      <PageHeading emoji="🤔" title="I Choose" subtitle="Tap a picture to ask for it!" />
 
       <div className="flex gap-3 flex-wrap justify-center">
         {SETS.map((s) => (
@@ -72,9 +73,23 @@ export default function ChoicesPage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-6 pt-4 pb-10">
+      <div className="w-full max-w-md min-h-24 flex items-center justify-center">
+        {chosen ? (
+          <div className="tap-pop relative w-full flex items-center justify-center gap-3 bg-learn text-white rounded-3xl shadow-lg px-6 py-4">
+            <span className="text-4xl">🙋</span>
+            <span className="text-2xl font-extrabold">
+              I want {chosen.emoji} {chosen.label}!
+            </span>
+            <span className="absolute left-10 -bottom-2 w-4 h-4 bg-learn rotate-45" />
+          </div>
+        ) : (
+          <p className="text-lg font-bold text-foreground/40">👉 Show a grown-up what you want!</p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-6 pt-2 pb-10">
         {set.options.map((opt) => {
-          const isChosen = chosen === opt.id;
+          const isChosen = chosenId === opt.id;
           return (
             <button
               key={opt.id}

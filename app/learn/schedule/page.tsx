@@ -5,21 +5,7 @@ import { PageHeading } from "@/components/Tile";
 import { speak } from "@/lib/speak";
 import { useProfile } from "@/components/ProfileContext";
 import { useStickerAward, StickerToast } from "@/components/StickerAward";
-
-type CardDef = { id: string; emoji: string; label: string };
-
-const CARDS: CardDef[] = [
-  { id: "breakfast", emoji: "🥣", label: "Breakfast" },
-  { id: "teeth", emoji: "🪥", label: "Brush Teeth" },
-  { id: "dressed", emoji: "👕", label: "Get Dressed" },
-  { id: "outside", emoji: "⚽", label: "Play Outside" },
-  { id: "ipad", emoji: "📱", label: "iPad Time" },
-  { id: "tidy", emoji: "🧸", label: "Tidy Up" },
-  { id: "bath", emoji: "🛁", label: "Bath Time" },
-  { id: "dinner", emoji: "🍽️", label: "Dinner" },
-  { id: "story", emoji: "📖", label: "Story Time" },
-  { id: "bed", emoji: "🌙", label: "Bedtime" },
-];
+import { TASK_CARDS as CARDS, type CardDef } from "@/lib/task-cards";
 
 export default function SchedulePage() {
   const { profile } = useProfile();
