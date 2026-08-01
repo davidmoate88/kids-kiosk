@@ -1,0 +1,74 @@
+import type { KeyboardEvent } from "react";
+import type { Picture, Region } from "@/lib/colouring-pictures";
+
+function fillFor(colors: Record<string, string>, id: string) {
+  return colors[id] ?? "#ffffff";
+}
+
+function renderRegion(region: Region, colors: Record<string, string>, onClick: (id: string) => void) {
+  const fill = fillFor(colors, region.id);
+  const common = {
+    fill,
+    stroke: "#2b2440",
+    strokeWidth: region.id === "sky" ? 0 : 4,
+    strokeLinejoin: "round" as const,
+    onClick: () => onClick(region.id),
+    className: "cursor-pointer",
+    role: "button" as const,
+    tabIndex: 0,
+    "aria-label": `Colour the ${region.id}`,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick(region.id);
+      }
+    },
+  };
+
+  switch (region.kind) {
+    case "rect":
+      return (
+        <rect
+          key={region.id}
+          {...common}
+          x={region.x}
+          y={region.y}
+          width={region.w}
+          height={region.h}
+          rx={region.rx ?? 0}
+        />
+      );
+    case "circle":
+      return <circle key={region.id} {...common} cx={region.cx} cy={region.cy} r={region.r} />;
+    case "ellipse":
+      return (
+        <ellipse
+          key={region.id}
+          {...common}
+          cx={region.cx}
+          cy={region.cy}
+          rx={region.rx}
+          ry={region.ry}
+          transform={region.rotate ? `rotate(${region.rotate} ${region.cx} ${region.cy})` : undefined}
+        />
+      );
+    case "polygon":
+      return <polygon key={region.id} {...common} points={region.points} />;
+  }
+}
+
+export default function ColouringSvg({
+  picture,
+  colors,
+  onRegionClick,
+}: {
+  picture: Picture;
+  colors: Record<string, string>;
+  onRegionClick: (id: string) => void;
+}) {
+  return (
+    <svg viewBox={picture.viewBox} className="w-full h-full select-none">
+      {picture.regions.map((region) => renderRegion(region, colors, onRegionClick))}
+    </svg>
+  );
+}

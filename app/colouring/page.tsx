@@ -1,0 +1,89 @@
+"use client";
+
+import { useState } from "react";
+import { PICTURES } from "@/lib/colouring-pictures";
+import ColouringSvg from "@/components/ColouringSvg";
+import { PageHeading } from "@/components/Tile";
+
+const PALETTE = [
+  "#ff5c5c",
+  "#ff9f5b",
+  "#ffd93d",
+  "#8bd450",
+  "#33c29e",
+  "#3fa7f7",
+  "#7c7cff",
+  "#b07df0",
+  "#ff7ac6",
+  "#8a5a3b",
+  "#2b2440",
+  "#ffffff",
+];
+
+export default function ColouringPage() {
+  const [pictureId, setPictureId] = useState(PICTURES[0].id);
+  const [colorsByPicture, setColorsByPicture] = useState<Record<string, Record<string, string>>>({});
+  const [selectedColor, setSelectedColor] = useState(PALETTE[0]);
+
+  const picture = PICTURES.find((p) => p.id === pictureId)!;
+  const colors = colorsByPicture[pictureId] ?? {};
+
+  function paintRegion(regionId: string) {
+    setColorsByPicture((prev) => ({
+      ...prev,
+      [pictureId]: { ...(prev[pictureId] ?? {}), [regionId]: selectedColor },
+    }));
+  }
+
+  function clearPicture() {
+    setColorsByPicture((prev) => ({ ...prev, [pictureId]: {} }));
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center px-4 gap-4 max-w-2xl mx-auto">
+      <PageHeading emoji="🖍️" title="Colouring" />
+
+      <div className="flex gap-3 overflow-x-auto w-full px-2 pb-1">
+        {PICTURES.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPictureId(p.id)}
+            className={`tap-pop shrink-0 flex flex-col items-center gap-1 px-4 py-2 rounded-2xl shadow ${
+              p.id === pictureId ? "bg-colouring text-white" : "bg-white"
+            }`}
+          >
+            <span className="text-3xl">{p.emoji}</span>
+            <span className="text-sm font-bold">{p.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="w-full max-w-sm aspect-square rounded-[2rem] bg-white shadow-xl p-4">
+        <ColouringSvg picture={picture} colors={colors} onRegionClick={paintRegion} />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-3 max-w-md">
+        {PALETTE.map((c) => (
+          <button
+            key={c}
+            onClick={() => setSelectedColor(c)}
+            className="tap-pop w-11 h-11 rounded-full shadow-md"
+            style={{
+              background: c,
+              outline: selectedColor === c ? "4px solid var(--colouring-dark)" : "3px solid rgba(0,0,0,0.15)",
+              outlineOffset: 2,
+            }}
+            aria-label={`Colour ${c}`}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={clearPicture}
+        className="tap-pop mb-6 flex items-center gap-2 rounded-2xl px-6 py-3 bg-white shadow font-bold text-foreground/70"
+      >
+        🧹 Clear
+      </button>
+    </div>
+  );
+}

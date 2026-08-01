@@ -1,0 +1,115 @@
+"use client";
+
+import { useState } from "react";
+import { PageHeading } from "@/components/Tile";
+import { speak } from "@/lib/speak";
+
+type CardDef = { id: string; emoji: string; label: string };
+
+const CARDS: CardDef[] = [
+  { id: "breakfast", emoji: "🥣", label: "Breakfast" },
+  { id: "teeth", emoji: "🪥", label: "Brush Teeth" },
+  { id: "dressed", emoji: "👕", label: "Get Dressed" },
+  { id: "outside", emoji: "⚽", label: "Play Outside" },
+  { id: "ipad", emoji: "📱", label: "iPad Time" },
+  { id: "tidy", emoji: "🧸", label: "Tidy Up" },
+  { id: "bath", emoji: "🛁", label: "Bath Time" },
+  { id: "dinner", emoji: "🍽️", label: "Dinner" },
+  { id: "story", emoji: "📖", label: "Story Time" },
+  { id: "bed", emoji: "🌙", label: "Bedtime" },
+];
+
+export default function SchedulePage() {
+  const [held, setHeld] = useState<string | null>(null);
+  const [first, setFirst] = useState<string | null>(null);
+  const [then, setThen] = useState<string | null>(null);
+
+  function tapCard(card: CardDef) {
+    speak(card.label);
+    setHeld(card.id);
+  }
+
+  function tapSlot(slot: "first" | "then") {
+    const setter = slot === "first" ? setFirst : setThen;
+    const current = slot === "first" ? first : then;
+
+    if (held) {
+      setter(held);
+      setHeld(null);
+    } else if (current) {
+      setter(null);
+    }
+  }
+
+  function clearAll() {
+    setFirst(null);
+    setThen(null);
+    setHeld(null);
+  }
+
+  const cardById = (id: string | null) => CARDS.find((c) => c.id === id) ?? null;
+
+  return (
+    <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+      <PageHeading emoji="🗓️" title="First, Then" subtitle={held ? `Tap a box to place "${cardById(held)?.label}"` : "Tap a card, then tap a box"} />
+
+      <div className="flex gap-4 w-full max-w-md">
+        <Slot label="FIRST" card={cardById(first)} onTap={() => tapSlot("first")} />
+        <Slot label="THEN" card={cardById(then)} onTap={() => tapSlot("then")} />
+      </div>
+
+      {first && then && (
+        <p className="text-2xl font-extrabold text-learn-dark">✅ All set! Off we go!</p>
+      )}
+
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 w-full max-w-2xl pb-4">
+        {CARDS.map((card) => (
+          <button
+            key={card.id}
+            onClick={() => tapCard(card)}
+            className={`tap-pop flex flex-col items-center gap-1 rounded-2xl p-3 shadow ${
+              held === card.id ? "bg-learn text-white ring-4 ring-learn-dark" : "bg-white"
+            }`}
+          >
+            <span className="text-4xl">{card.emoji}</span>
+            <span className="text-xs font-bold text-center leading-tight">{card.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={clearAll}
+        className="tap-pop mb-6 flex items-center gap-2 rounded-2xl px-6 py-3 bg-white shadow font-bold text-foreground/70"
+      >
+        🧹 Clear
+      </button>
+    </div>
+  );
+}
+
+function Slot({
+  label,
+  card,
+  onTap,
+}: {
+  label: string;
+  card: CardDef | null;
+  onTap: () => void;
+}) {
+  return (
+    <button
+      onClick={onTap}
+      className="tap-pop flex-1 aspect-square rounded-3xl bg-white shadow-lg border-4 border-dashed border-learn/50 flex flex-col items-center justify-center gap-2"
+    >
+      <span className="text-sm font-extrabold text-learn-dark tracking-wide">{label}</span>
+      {card ? (
+        <>
+          <span className="text-5xl">{card.emoji}</span>
+          <span className="text-sm font-bold">{card.label}</span>
+        </>
+      ) : (
+        <span className="text-4xl text-foreground/20">＋</span>
+      )}
+    </button>
+  );
+}

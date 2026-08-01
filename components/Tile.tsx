@@ -1,0 +1,77 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+export function Tile({
+  href,
+  emoji,
+  label,
+  colorVar,
+  colorDarkVar,
+  wide = false,
+}: {
+  href: string;
+  emoji: string;
+  label: string;
+  colorVar: string;
+  colorDarkVar: string;
+  wide?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`tap-pop flex items-center justify-center gap-4 rounded-[2rem] p-6 text-white shadow-lg ${
+        wide ? "flex-row min-h-36" : "flex-col aspect-square"
+      }`}
+      style={{
+        background: `linear-gradient(160deg, ${colorVar}, ${colorDarkVar})`,
+      }}
+    >
+      <span className="text-6xl drop-shadow">{emoji}</span>
+      <span className="text-2xl font-extrabold text-center leading-tight drop-shadow">
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+export function PageHeading({
+  emoji,
+  title,
+  subtitle,
+}: {
+  emoji: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center text-center gap-1 pt-8 pb-4 px-4">
+      <span className="text-5xl">{emoji}</span>
+      <h1 className="text-3xl font-extrabold">{title}</h1>
+      {subtitle && <p className="text-foreground/60 text-lg font-medium">{subtitle}</p>}
+    </div>
+  );
+}
+
+export function BigButton({
+  onClick,
+  children,
+  color = "var(--warm)",
+  colorDark = "var(--warm-dark)",
+  className = "",
+}: {
+  onClick?: () => void;
+  children: ReactNode;
+  color?: string;
+  colorDark?: string;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`tap-pop rounded-3xl px-8 py-5 text-2xl font-extrabold text-white shadow-lg ${className}`}
+      style={{ background: `linear-gradient(160deg, ${color}, ${colorDark})` }}
+    >
+      {children}
+    </button>
+  );
+}
