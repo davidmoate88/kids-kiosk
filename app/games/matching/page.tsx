@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useProfile } from "@/components/ProfileContext";
 import { BigButton } from "@/components/Tile";
 import { speak } from "@/lib/speak";
+import { useStickerAward, StickerToast } from "@/components/StickerAward";
 
 type Card = { id: number; symbol: string; matched: boolean };
 
@@ -25,9 +26,12 @@ function buildDeck(pairCount: number): Card[] {
 
 export default function MatchingGamePage() {
   const { profile } = useProfile();
-  const pairCount = profile?.tier === "little" ? 3 : 4;
+  const { award, justEarned } = useStickerAward(profile?.id);
+  const basePairCount = profile?.tier === "little" ? 3 : 4;
+  const maxPairCount = profile?.tier === "little" ? 5 : 7;
 
-  const [deck, setDeck] = useState<Card[]>(() => buildDeck(pairCount));
+  const [pairCount, setPairCount] = useState(basePairCount);
+  const [deck, setDeck] = useState<Card[]>(() => buildDeck(basePairCount));
   const [flipped, setFlipped] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
 
@@ -65,7 +69,15 @@ export default function MatchingGamePage() {
     });
   }
 
-  function newGame() {
+  function nextLevel() {
+    const next = Math.min(pairCount + 1, maxPairCount);
+    setPairCount(next);
+    setDeck(buildDeck(next));
+    setFlipped([]);
+    setMoves(0);
+  }
+
+  function playAgain() {
     setDeck(buildDeck(pairCount));
     setFlipped([]);
     setMoves(0);
@@ -74,11 +86,16 @@ export default function MatchingGamePage() {
   useEffect(() => {
     if (allMatched) {
       speak("You found them all! Great job!");
+      award("match-whiz");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allMatched]);
+
+  const canLevelUp = pairCount < maxPairCount;
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 pt-6 gap-6 max-w-2xl mx-auto">
+      <StickerToast sticker={justEarned} />
       <div className="flex items-center justify-between w-full">
         <h1 className="text-2xl font-extrabold">🃏 Matching</h1>
         <div className="text-xl font-bold text-games-dark">Tries: {moves}</div>
@@ -90,7 +107,12 @@ export default function MatchingGamePage() {
           <p className="text-2xl font-extrabold">
             You found them all, {profile?.name}!
           </p>
-          <BigButton onClick={newGame}>Play Again</BigButton>
+          <div className="flex gap-4">
+            <BigButton onClick={playAgain} color="var(--colouring)" colorDark="var(--colouring-dark)">
+              Play Again
+            </BigButton>
+            {canLevelUp && <BigButton onClick={nextLevel}>Next Level! ⭐</BigButton>}
+          </div>
         </div>
       ) : (
         <div

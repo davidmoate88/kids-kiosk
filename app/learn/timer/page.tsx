@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
 import { chime, speak } from "@/lib/speak";
+import { useProfile } from "@/components/ProfileContext";
+import { useStickerAward, StickerToast } from "@/components/StickerAward";
 
 const PRESETS = [
   { label: "1 min", seconds: 60 },
@@ -12,6 +14,8 @@ const PRESETS = [
 ];
 
 export default function TimerPage() {
+  const { profile } = useProfile();
+  const { award, justEarned } = useStickerAward(profile?.id);
   const [total, setTotal] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -37,6 +41,11 @@ export default function TimerPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, [total, paused, done]);
+
+  useEffect(() => {
+    if (done) award("timer-team");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
 
   function start(seconds: number) {
     doneRef.current = false;
@@ -80,6 +89,7 @@ export default function TimerPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8">
+      <StickerToast sticker={justEarned} />
       <div
         className="rounded-full flex items-center justify-center shadow-xl"
         style={{

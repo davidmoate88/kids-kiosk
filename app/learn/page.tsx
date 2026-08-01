@@ -9,6 +9,7 @@ export default function LearnHubPage() {
         <Tile href="/learn/feelings" emoji="😊" label="My Feelings" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
         <Tile href="/learn/timer" emoji="⏳" label="Timer" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
         <Tile href="/learn/choices" emoji="🤔" label="I Choose" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
+        <Tile href="/learn/phonics" emoji="🔤" label="Letter Sounds" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
       </div>
     </div>
   );

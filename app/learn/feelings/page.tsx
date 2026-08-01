@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
 import { speak } from "@/lib/speak";
+import { useProfile } from "@/components/ProfileContext";
+import { useStickerAward, StickerToast } from "@/components/StickerAward";
 
 type Feeling = {
   id: string;
@@ -24,16 +26,20 @@ const FEELINGS: Feeling[] = [
 ];
 
 export default function FeelingsPage() {
+  const { profile } = useProfile();
+  const { award, justEarned } = useStickerAward(profile?.id);
   const [selected, setSelected] = useState<Feeling | null>(null);
 
   function pick(feeling: Feeling) {
     setSelected(feeling);
     speak(`${feeling.label}. ${feeling.message}`);
+    award("feelings-friend");
   }
 
   if (selected) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+        <StickerToast sticker={justEarned} />
         {selected.needsCalm ? (
           <>
             <div className="w-40 h-40 rounded-full bg-learn/70 breathe" />

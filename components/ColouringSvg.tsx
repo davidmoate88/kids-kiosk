@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from "react";
-import type { Picture, Region } from "@/lib/colouring-pictures";
+import type { Decor, Picture, Region } from "@/lib/colouring-pictures";
 
 function fillFor(colors: Record<string, string>, id: string) {
   return colors[id] ?? "#ffffff";
@@ -57,6 +57,20 @@ function renderRegion(region: Region, colors: Record<string, string>, onClick: (
   }
 }
 
+function renderDecor(decor: Decor, i: number) {
+  const common = {
+    stroke: "#2b2440",
+    strokeWidth: 3,
+    strokeLinecap: "round" as const,
+    fill: "none",
+    className: "pointer-events-none",
+  };
+  if (decor.kind === "line") {
+    return <line key={i} {...common} x1={decor.x1} y1={decor.y1} x2={decor.x2} y2={decor.y2} />;
+  }
+  return <path key={i} {...common} d={decor.d} />;
+}
+
 export default function ColouringSvg({
   picture,
   colors,
@@ -69,6 +83,7 @@ export default function ColouringSvg({
   return (
     <svg viewBox={picture.viewBox} className="w-full h-full select-none">
       {picture.regions.map((region) => renderRegion(region, colors, onRegionClick))}
+      {picture.decor?.map((d, i) => renderDecor(d, i))}
     </svg>
   );
 }

@@ -15,9 +15,8 @@ export default function HomePage() {
       <div className="grid grid-cols-2 gap-6 w-full">
         <Tile href="/games" emoji="🎮" label="Games" colorVar="var(--games)" colorDarkVar="var(--games-dark)" />
         <Tile href="/colouring" emoji="🖍️" label="Colouring" colorVar="var(--colouring)" colorDarkVar="var(--colouring-dark)" />
-        <div className="col-span-2">
-          <Tile href="/learn" emoji="🧩" label="Learning Zone" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" wide />
-        </div>
+        <Tile href="/learn" emoji="🧩" label="Learning Zone" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
+        <Tile href="/rewards" emoji="🏅" label="My Stickers" colorVar="var(--warm)" colorDarkVar="var(--warm-dark)" />
       </div>
     </div>
   );

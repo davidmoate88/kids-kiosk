@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { PageHeading } from "@/components/Tile";
 import { speak } from "@/lib/speak";
+import { useProfile } from "@/components/ProfileContext";
+import { useStickerAward, StickerToast } from "@/components/StickerAward";
 
 type Option = { id: string; emoji: string; label: string };
 type ChoiceSet = { id: string; title: string; options: Option[] };
@@ -37,6 +39,8 @@ const SETS: ChoiceSet[] = [
 ];
 
 export default function ChoicesPage() {
+  const { profile } = useProfile();
+  const { award, justEarned } = useStickerAward(profile?.id);
   const [setId, setSetId] = useState(SETS[0].id);
   const [selections, setSelections] = useState<Record<string, string>>({});
 
@@ -46,10 +50,12 @@ export default function ChoicesPage() {
   function choose(option: Option) {
     setSelections((prev) => ({ ...prev, [setId]: option.id }));
     speak(`${option.label}`);
+    award("great-chooser");
   }
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+      <StickerToast sticker={justEarned} />
       <PageHeading emoji="🤔" title="I Choose" />
 
       <div className="flex gap-3 flex-wrap justify-center">

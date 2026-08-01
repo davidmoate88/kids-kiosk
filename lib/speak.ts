@@ -1,3 +1,47 @@
+const FEMALE_VOICE_HINTS = [
+  "female",
+  "samantha",
+  "karen",
+  "moira",
+  "tessa",
+  "victoria",
+  "susan",
+  "fiona",
+  "kate",
+  "serena",
+  "zira",
+  "hazel",
+  "google uk english female",
+  "google us english",
+  "microsoft libby",
+  "microsoft sonia",
+  "microsoft aria",
+];
+
+let voicesPrimed = false;
+
+function pickVoice(synth: SpeechSynthesis): SpeechSynthesisVoice | undefined {
+  const voices = synth.getVoices();
+  if (!voices.length) {
+    if (!voicesPrimed) {
+      voicesPrimed = true;
+      synth.addEventListener("voiceschanged", () => {}, { once: true });
+    }
+    return undefined;
+  }
+  const scored = voices.map((v) => {
+    const name = v.name.toLowerCase();
+    const lang = v.lang?.toLowerCase() ?? "";
+    let score = 0;
+    if (lang.startsWith("en-gb")) score += 2;
+    else if (lang.startsWith("en")) score += 1;
+    if (FEMALE_VOICE_HINTS.some((hint) => name.includes(hint))) score += 3;
+    return { v, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.v;
+}
+
 export function speak(text: string) {
   if (typeof window === "undefined") return;
   const synth = window.speechSynthesis;
@@ -5,8 +49,10 @@ export function speak(text: string) {
   try {
     synth.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
+    utterance.rate = 0.92;
+    utterance.pitch = 1.2;
+    const voice = pickVoice(synth);
+    if (voice) utterance.voice = voice;
     synth.speak(utterance);
   } catch {
     // speech synthesis unavailable — fail silently, it's a bonus feature

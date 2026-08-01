@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useProfile } from "@/components/ProfileContext";
 import { BigButton } from "@/components/Tile";
+import { useStickerAward, StickerToast } from "@/components/StickerAward";
 
 type Obstacle = { id: number; lane: number; y: number };
 
@@ -12,10 +13,12 @@ const OBSTACLE_EMOJIS = ["🪨", "🌵", "🚧", "🍊", "🦆"];
 
 export default function RacingGamePage() {
   const { profile } = useProfile();
+  const { award, justEarned } = useStickerAward(profile?.id);
   const isLittle = profile?.tier === "little";
+  const awardThreshold = isLittle ? 6 : 10;
 
-  const speed = isLittle ? 6 : 9;
-  const spawnEvery = isLittle ? 28 : 21;
+  const baseSpeed = isLittle ? 6 : 9;
+  const baseSpawn = isLittle ? 28 : 21;
 
   const [bikeLane, setBikeLane] = useState<number>(1);
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
@@ -32,6 +35,15 @@ export default function RacingGamePage() {
   useEffect(() => {
     bikeLaneRef.current = bikeLane;
   }, [bikeLane]);
+
+  const speedBonus = Math.min(Math.floor(score / 6), 5);
+  const speed = baseSpeed + speedBonus;
+  const spawnEvery = Math.max(baseSpawn - speedBonus * 2, baseSpawn - 10);
+
+  useEffect(() => {
+    if (score >= awardThreshold) award("speedy-rider");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score]);
 
   const resetGame = useCallback(() => {
     setBikeLane(1);
@@ -93,6 +105,7 @@ export default function RacingGamePage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 pt-6 gap-4 max-w-2xl mx-auto">
+      <StickerToast sticker={justEarned} />
       <div className="flex items-center justify-between w-full">
         <div className="flex gap-1 text-3xl">
           {[0, 1, 2].map((i) => (

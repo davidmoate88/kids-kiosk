@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeading } from "@/components/Tile";
 import { speak } from "@/lib/speak";
+import { useProfile } from "@/components/ProfileContext";
+import { useStickerAward, StickerToast } from "@/components/StickerAward";
 
 type CardDef = { id: string; emoji: string; label: string };
 
@@ -20,9 +22,16 @@ const CARDS: CardDef[] = [
 ];
 
 export default function SchedulePage() {
+  const { profile } = useProfile();
+  const { award, justEarned } = useStickerAward(profile?.id);
   const [held, setHeld] = useState<string | null>(null);
   const [first, setFirst] = useState<string | null>(null);
   const [then, setThen] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (first && then) award("planner-pro");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [first, then]);
 
   function tapCard(card: CardDef) {
     speak(card.label);
@@ -51,6 +60,7 @@ export default function SchedulePage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 gap-6 max-w-2xl mx-auto">
+      <StickerToast sticker={justEarned} />
       <PageHeading emoji="🗓️" title="First, Then" subtitle={held ? `Tap a box to place "${cardById(held)?.label}"` : "Tap a card, then tap a box"} />
 
       <div className="flex gap-4 w-full max-w-md">

@@ -7,6 +7,7 @@ export default function GamesHubPage() {
       <div className="grid grid-cols-2 gap-6 w-full">
         <Tile href="/games/racing" emoji="🚲" label="Bike Race" colorVar="var(--games)" colorDarkVar="var(--games-dark)" />
         <Tile href="/games/matching" emoji="🃏" label="Matching" colorVar="var(--games)" colorDarkVar="var(--games-dark)" />
+        <Tile href="/games/pattern" emoji="🧠" label="Pattern Pals" colorVar="var(--games)" colorDarkVar="var(--games-dark)" />
       </div>
     </div>
   );
