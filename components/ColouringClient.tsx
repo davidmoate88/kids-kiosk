@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PICTURES } from "@/lib/colouring-pictures";
 import ColouringSvg from "@/components/ColouringSvg";
 import ColouringCanvas from "@/components/ColouringCanvas";
+import FreeDrawCanvas from "@/components/FreeDrawCanvas";
 import { PageHeading } from "@/components/Tile";
 import { useProfile } from "@/components/ProfileContext";
 import { useStickerAward, StickerToast } from "@/components/StickerAward";
@@ -30,7 +31,8 @@ const PALETTE = [
 
 type PickerItem =
   | { kind: "svg"; id: string; name: string; emoji: string }
-  | { kind: "raster"; id: string; name: string; src: string };
+  | { kind: "raster"; id: string; name: string; src: string }
+  | { kind: "draw"; id: string; name: string };
 
 export default function ColouringClient({ userImages }: { userImages: UserImage[] }) {
   const { profile } = useProfile();
@@ -39,6 +41,7 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
   const items: PickerItem[] = [
     ...PICTURES.map((p) => ({ kind: "svg" as const, id: p.id, name: p.name, emoji: p.emoji })),
     ...userImages.map((img) => ({ kind: "raster" as const, id: img.id, name: img.name, src: img.src })),
+    { kind: "draw" as const, id: "free-draw", name: "Free Draw" },
   ];
 
   const [pictureId, setPictureId] = useState(items[0]?.id ?? "");
@@ -107,6 +110,8 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
           >
             {item.kind === "svg" ? (
               <span className="text-4xl">{item.emoji}</span>
+            ) : item.kind === "draw" ? (
+              <span className="text-4xl">✏️</span>
             ) : (
               <span className="text-4xl">🖼️</span>
             )}
@@ -118,6 +123,8 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
       <div className="relative w-full max-w-xl aspect-square rounded-[2rem] bg-white shadow-xl p-6">
         {svgPicture ? (
           <ColouringSvg picture={svgPicture} colors={colors} onRegionClick={paintRegion} />
+        ) : current.kind === "draw" ? (
+          <FreeDrawCanvas selectedColor={selectedColor} resetKey={rasterResetKeys[pictureId] ?? 0} />
         ) : (
           <ColouringCanvas
             src={(current as { src: string }).src}

@@ -1,0 +1,81 @@
+import type { ExplorerCategory, ExplorerItem } from "@/components/FactExplorer";
+
+export const DINO_CATEGORIES: ExplorerCategory[] = [
+  { id: "plant", label: "Plant Eaters", emoji: "🌿" },
+  { id: "meat", label: "Meat Eaters", emoji: "🍖" },
+];
+
+export const DINOSAURS: ExplorerItem[] = [
+  {
+    id: "triceratops",
+    name: "Triceratops",
+    emoji: "🦕",
+    iconSrc: "/dino-icons/triceratops.png",
+    category: "plant",
+    fact: "I have three horns on my head to keep me safe!",
+    color: "#8bd450",
+  },
+  {
+    id: "diplodocus",
+    name: "Diplodocus",
+    emoji: "🦕",
+    iconSrc: "/dino-icons/diplodocus.png",
+    category: "plant",
+    fact: "I have a super long neck to reach the tallest leaves!",
+    color: "#33c29e",
+  },
+  {
+    id: "stegosaurus",
+    name: "Stegosaurus",
+    emoji: "🦕",
+    iconSrc: "/dino-icons/stegosaurus.png",
+    category: "plant",
+    fact: "I have spiky plates all along my back!",
+    color: "#3fa7f7",
+  },
+  {
+    id: "parasaurolophus",
+    name: "Parasaurolophus",
+    emoji: "🦕",
+    iconSrc: "/dino-icons/parasaurolophus.png",
+    category: "plant",
+    fact: "The crest on my head makes a trumpet sound!",
+    color: "#ffd93d",
+  },
+  {
+    id: "ankylosaurus",
+    name: "Ankylosaurus",
+    emoji: "🦕",
+    iconSrc: "/dino-icons/ankylosaurus.png",
+    category: "plant",
+    fact: "I swing a big bony club on my tail!",
+    color: "#7c7cff",
+  },
+  {
+    id: "trex",
+    name: "Tyrannosaurus Rex",
+    emoji: "🦖",
+    iconSrc: "/dino-icons/trex.png",
+    category: "meat",
+    fact: "I have huge sharp teeth and very tiny arms!",
+    color: "#ff5c5c",
+  },
+  {
+    id: "velociraptor",
+    name: "Velociraptor",
+    emoji: "🦖",
+    iconSrc: "/dino-icons/velociraptor.png",
+    category: "meat",
+    fact: "I am small, but I can run super fast!",
+    color: "#ff9f5b",
+  },
+  {
+    id: "spinosaurus",
+    name: "Spinosaurus",
+    emoji: "🦖",
+    iconSrc: "/dino-icons/spinosaurus.png",
+    category: "meat",
+    fact: "I have a giant sail on my back and I love to swim!",
+    color: "#b07df0",
+  },
+];

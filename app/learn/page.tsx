@@ -11,6 +11,8 @@ export default function LearnHubPage() {
         <Tile href="/learn/choices" emoji="🤔" label="I Choose" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
         <Tile href="/learn/phonics" emoji="🔤" label="Letter Sounds" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
         <Tile href="/learn/workbox" emoji="🧺" label="My Work Box" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
+        <Tile href="/learn/dinosaurs" emoji="🦖" label="Dino Explorer" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
+        <Tile href="/learn/vehicles" emoji="🚒" label="Vehicle Explorer" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
       </div>
     </div>
   );
