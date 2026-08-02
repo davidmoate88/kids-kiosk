@@ -125,19 +125,30 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
       <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-10 max-w-4xl mx-auto">
         <PageHeading emoji="📺" title="Watch" subtitle="Pick a folder!" />
         <div className="grid grid-cols-2 gap-8 w-full">
-          {folders.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => pickFolder(f.id)}
-              className="tap-pop flex flex-col items-center justify-center gap-5 rounded-[2.5rem] p-8 aspect-square text-white shadow-lg"
-              style={{ background: "linear-gradient(160deg, var(--watch), var(--watch-dark))" }}
-            >
-              <span className="text-7xl md:text-8xl drop-shadow">{f.emoji}</span>
-              <span className="text-3xl md:text-4xl font-extrabold text-center leading-tight drop-shadow">
-                {f.label}
-              </span>
-            </button>
-          ))}
+          {folders.map((f) => {
+            const coverVideoId = f.categories[0]?.videos[0]?.videoId;
+            return (
+              <button
+                key={f.id}
+                onClick={() => pickFolder(f.id)}
+                className="tap-pop relative flex items-end justify-center aspect-square rounded-[2.5rem] text-white shadow-lg overflow-hidden"
+                style={{ background: "linear-gradient(160deg, var(--watch), var(--watch-dark))" }}
+              >
+                {coverVideoId && (
+                  <img
+                    src={`https://i.ytimg.com/vi/${coverVideoId}/hqdefault.jpg`}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                <span className="relative flex items-center gap-2 px-5 pb-6 text-2xl md:text-3xl font-extrabold text-center leading-tight drop-shadow">
+                  <span className="text-3xl md:text-4xl">{f.emoji}</span>
+                  {f.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
