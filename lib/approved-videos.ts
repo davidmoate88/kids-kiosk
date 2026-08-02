@@ -45,4 +45,6 @@ export const APPROVED_CHANNELS: ApprovedChannel[] = [
  * appear here with no code changes. Paste the ID from the playlist
  * URL's "list=" parameter below.
  */
-export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [];
+export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [
+  { id: "kids-approved-videos", playlistId: "PLGT-cs6iQ9hA", name: "Kids Approved Videos" },
+];
