@@ -85,4 +85,46 @@ export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [
     name: "Mickey Mouse Funhouse",
     folder: "Shows",
   },
+  {
+    id: "mickey-mouse-mixed-up-adventures",
+    playlistId: "PL2m1vjiMH_hPYQp2uVHIW0jxwLO5DEvDl",
+    name: "Mickey Mouse Mixed-Up Adventures",
+    folder: "Shows",
+  },
+  {
+    id: "mickey-mouse-roadster-racers",
+    playlistId: "PL2m1vjiMH_hNZzP_dJqPkrk-NKVacw4sd",
+    name: "Mickey Mouse Roadster Racers",
+    folder: "Shows",
+  },
+  {
+    id: "iron-man-and-his-awesome-friends",
+    playlistId: "PL2m1vjiMH_hMLTuM_CBxo3nir28x5cNZc",
+    name: "Iron Man and His Awesome Friends",
+    folder: "Shows",
+  },
+  {
+    id: "ozzy-fox",
+    playlistId: "PLKQXT0dZRy5A",
+    name: "Ozzy Fox",
+    folder: "Shows",
+  },
+  {
+    id: "magicampers",
+    playlistId: "PL2m1vjiMH_hON0IkNMaLo_jeRo0lYX6gA",
+    name: "Magicampers",
+    folder: "Shows",
+  },
+  {
+    id: "minnies-bow-toons",
+    playlistId: "PL2m1vjiMH_hP1JsGIKTJCgqTIe6rQFw0g",
+    name: "Minnie's Bow-Toons",
+    folder: "Shows",
+  },
+  {
+    id: "cars-toon-maters-tall-tales",
+    playlistId: "PL2m1vjiMH_hPifQqYFBBheEtiKgYdbVHq",
+    name: "Cars Toon: Mater's Tall Tales",
+    folder: "Shows",
+  },
 ];
