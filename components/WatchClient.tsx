@@ -34,11 +34,22 @@ export default function WatchClient({ categories }: { categories: VideoCategory[
           <iframe
             key={selected.videoId}
             className="absolute inset-0 w-full h-full"
-            src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&fs=1&playsinline=1&loop=1&playlist=${selected.videoId}`}
+            src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1&playsinline=1&loop=1&playlist=${selected.videoId}`}
             title={selected.title}
             allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+          {/*
+            YouTube's embed always overlays two clickable links that open
+            youtube.com — the video/channel title strip at the top, and the
+            "Watch on YouTube" badge (and logo watermark once playing) in
+            the bottom-right. These invisible shields sit above the iframe
+            and swallow taps in just those two spots so nothing on this
+            screen can navigate the kids away from the app; the rest of
+            the video (including the play button and controls) stays usable.
+          */}
+          <div className="absolute top-0 inset-x-0 h-[18%]" aria-hidden="true" />
+          <div className="absolute bottom-0 right-0 w-[45%] h-[18%]" aria-hidden="true" />
         </div>
         <BigButton onClick={() => setSelected(null)} color="var(--watch)" colorDark="var(--watch-dark)">
           Back to Videos

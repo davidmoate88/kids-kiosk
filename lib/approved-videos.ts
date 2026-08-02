@@ -10,6 +10,12 @@ export type ApprovedChannel = {
   name: string;
 };
 
+export type ApprovedPlaylist = {
+  id: string;
+  playlistId: string;
+  name: string;
+};
+
 /**
  * Individually watched-and-approved videos. Safest tier — nothing here
  * changes until someone edits this file. Swap these placeholders for
@@ -30,3 +36,13 @@ export const APPROVED_VIDEOS: ApprovedVideo[] = [
 export const APPROVED_CHANNELS: ApprovedChannel[] = [
   { id: "ms-rachel", channelId: "UCG2CL6EUjG8TVT1Tpl9nJdg", name: "Ms Rachel" },
 ];
+
+/**
+ * Trusted playlists — the easiest way to curate day-to-day: make a
+ * playlist on your own YouTube account (Public or Unlisted — Private
+ * playlists can't be read without signing the app into your account),
+ * add videos to it from the YouTube app whenever you like, and they
+ * appear here with no code changes. Paste the ID from the playlist
+ * URL's "list=" parameter below.
+ */
+export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [];
