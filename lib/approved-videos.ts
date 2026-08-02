@@ -44,19 +44,27 @@ export const APPROVED_VIDEOS: ApprovedVideo[] = [
 export const APPROVED_CHANNELS: ApprovedChannel[] = [
   { id: "ms-rachel", channelId: "UCG2CL6EUjG8TVT1Tpl9nJdg", name: "Ms Rachel", folder: "Songs & Learning" },
   { id: "bluey", channelId: "UCVzLLZkDuFGAE2BGdBuBNBg", name: "Bluey", folder: "Shows" },
-  { id: "disney-jr", channelId: "UCNcdbMyA59zE-Vk668bKWOg", name: "Disney Jr", folder: "Shows" },
   { id: "paw-patrol", channelId: "UCSVSJ1OCSv5ClFgKFTHIDew", name: "PAW Patrol", folder: "Shows" },
   { id: "the-mud-tour", channelId: "UC0Melcr-RF_kOQNonS5SqJg", name: "The Mud Tour", folder: "Vehicles" },
 ];
 
 /**
- * Trusted playlists — the easiest way to curate day-to-day: make a
- * playlist on your own YouTube account (Public or Unlisted — Private
- * playlists can't be read without signing the app into your account),
- * add videos to it from the YouTube app whenever you like, and they
- * appear here with no code changes. Paste the ID from the playlist
- * URL's "list=" parameter below.
+ * Trusted playlists. Two uses:
+ *  1. David's own curated playlist — make it on your YouTube account
+ *     (Public or Unlisted — Private can't be read without signing the
+ *     app into your account), add videos from the YouTube app whenever
+ *     you like, and they appear here with no code changes.
+ *  2. A single show from within a bigger channel — e.g. rather than
+ *     trusting all of Disney Jr.'s uploads, point at their own official
+ *     "Spidey and His Amazing Friends" playlist so only that show shows
+ *     up. Paste the ID from the playlist URL's "list=" parameter.
  */
 export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [
   { id: "kids-approved-videos", playlistId: "PLGT-cs6iQ9hA", name: "Kids Approved Videos", folder: "Songs & Learning" },
+  {
+    id: "spidey",
+    playlistId: "PL2m1vjiMH_hOMZ1crFOqPDX4etZoyWRKu",
+    name: "Spidey and His Amazing Friends",
+    folder: "Shows",
+  },
 ];
