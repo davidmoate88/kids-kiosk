@@ -168,18 +168,33 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           </button>
         )}
         {categories.length > 1 &&
-          categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setCategoryId(cat.id)}
-              className={`tap-pop px-5 py-3 rounded-2xl font-bold shadow flex items-center gap-2 ${
-                cat.id === category?.id ? "text-white" : "bg-white text-foreground/70"
-              }`}
-              style={cat.id === category?.id ? { background: "var(--watch)" } : undefined}
-            >
-              {cat.emoji} {cat.label}
-            </button>
-          ))}
+          categories.map((cat) => {
+            const coverVideoId = cat.videos[0]?.videoId;
+            const isActive = cat.id === category?.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryId(cat.id)}
+                className={`tap-pop pl-2 pr-5 py-2 rounded-full font-bold shadow flex items-center gap-3 ${
+                  isActive ? "text-white" : "bg-white text-foreground/70"
+                }`}
+                style={isActive ? { background: "var(--watch)" } : undefined}
+              >
+                <span className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-black/10 flex items-center justify-center text-lg">
+                  {coverVideoId ? (
+                    <img
+                      src={`https://i.ytimg.com/vi/${coverVideoId}/mqdefault.jpg`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    cat.emoji
+                  )}
+                </span>
+                {cat.label}
+              </button>
+            );
+          })}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 w-full pb-10">
