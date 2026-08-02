@@ -67,4 +67,22 @@ export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [
     name: "Spidey and His Amazing Friends",
     folder: "Shows",
   },
+  {
+    id: "sofia-the-first",
+    playlistId: "PL2m1vjiMH_hM1NOvGb-HSrC3sCyPTqCl-",
+    name: "Sofia the First",
+    folder: "Shows",
+  },
+  {
+    id: "pupstruction",
+    playlistId: "PL2m1vjiMH_hNexgL4ym6ir4yNNclUz2wa",
+    name: "Pupstruction",
+    folder: "Shows",
+  },
+  {
+    id: "mickey-mouse-funhouse",
+    playlistId: "PL2m1vjiMH_hPSsYrZEaWYpbiKN-djTrQ5",
+    name: "Mickey Mouse Funhouse",
+    folder: "Shows",
+  },
 ];
