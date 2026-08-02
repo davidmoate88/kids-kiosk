@@ -9,5 +9,5 @@ import { getWatchFolders } from "@/lib/watch-folders";
  */
 export default async function TvPage() {
   const folders = await getWatchFolders();
-  return <WatchClient folders={folders} />;
+  return <WatchClient folders={folders} tvMode />;
 }

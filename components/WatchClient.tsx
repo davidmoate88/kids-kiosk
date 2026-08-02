@@ -18,7 +18,19 @@ export type VideoFolder = {
   categories: VideoCategory[];
 };
 
-export default function WatchClient({ folders }: { folders: VideoFolder[] }) {
+function enterFullscreen() {
+  document.documentElement.requestFullscreen?.().catch(() => {
+    // fullscreen isn't available/permitted here — playback still works, just windowed
+  });
+}
+
+function exitFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.().catch(() => {});
+  }
+}
+
+export default function WatchClient({ folders, tvMode = false }: { folders: VideoFolder[]; tvMode?: boolean }) {
   const [folderId, setFolderId] = useState(folders.length === 1 ? folders[0].id : "");
   const [categoryId, setCategoryId] = useState("");
   const [selected, setSelected] = useState<ApprovedVideo | null>(null);
@@ -41,32 +53,67 @@ export default function WatchClient({ folders }: { folders: VideoFolder[] }) {
     setCategoryId("");
   }
 
+  function playVideo(video: ApprovedVideo) {
+    if (tvMode) enterFullscreen();
+    setSelected(video);
+  }
+
+  function backToVideos() {
+    if (tvMode) exitFullscreen();
+    setSelected(null);
+  }
+
   if (selected) {
+    const shields = (
+      <>
+        {/*
+          YouTube's embed always overlays two clickable links that open
+          youtube.com — the video/channel title strip at the top, and the
+          "Watch on YouTube" badge (and logo watermark once playing) in
+          the bottom-right. These invisible shields sit above the iframe
+          and swallow taps in just those two spots so nothing on this
+          screen can navigate the kids away from the app; the rest of
+          the video (including the play button and controls) stays usable.
+        */}
+        <div className="absolute top-0 inset-x-0 h-[18%]" aria-hidden="true" />
+        <div className="absolute bottom-0 right-0 w-[45%] h-[18%]" aria-hidden="true" />
+      </>
+    );
+
+    const iframe = (
+      <iframe
+        key={selected.videoId}
+        className="absolute inset-0 w-full h-full"
+        src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1&playsinline=1&loop=1&playlist=${selected.videoId}`}
+        title={selected.title}
+        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    );
+
+    if (tvMode) {
+      return (
+        <div className="fixed inset-0 w-screen h-screen bg-black">
+          {iframe}
+          {shields}
+          <button
+            onClick={backToVideos}
+            className="tap-pop absolute top-4 right-4 rounded-2xl px-5 py-3 font-bold text-white bg-black/50 backdrop-blur"
+          >
+            ⬅️ Back
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
         <p className="text-2xl font-extrabold text-center">{selected.title}</p>
         <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-xl bg-black">
-          <iframe
-            key={selected.videoId}
-            className="absolute inset-0 w-full h-full"
-            src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1&playsinline=1&loop=1&playlist=${selected.videoId}`}
-            title={selected.title}
-            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-          {/*
-            YouTube's embed always overlays two clickable links that open
-            youtube.com — the video/channel title strip at the top, and the
-            "Watch on YouTube" badge (and logo watermark once playing) in
-            the bottom-right. These invisible shields sit above the iframe
-            and swallow taps in just those two spots so nothing on this
-            screen can navigate the kids away from the app; the rest of
-            the video (including the play button and controls) stays usable.
-          */}
-          <div className="absolute top-0 inset-x-0 h-[18%]" aria-hidden="true" />
-          <div className="absolute bottom-0 right-0 w-[45%] h-[18%]" aria-hidden="true" />
+          {iframe}
+          {shields}
         </div>
-        <BigButton onClick={() => setSelected(null)} color="var(--watch)" colorDark="var(--watch-dark)">
+        <BigButton onClick={backToVideos} color="var(--watch)" colorDark="var(--watch-dark)">
           Back to Videos
         </BigButton>
       </div>
@@ -128,7 +175,7 @@ export default function WatchClient({ folders }: { folders: VideoFolder[] }) {
         {category?.videos.map((video) => (
           <button
             key={video.id}
-            onClick={() => setSelected(video)}
+            onClick={() => playVideo(video)}
             className="tap-pop flex flex-col items-center gap-2 rounded-3xl p-3 shadow-lg bg-white"
           >
             <span className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/10">
