@@ -11,6 +11,7 @@ import { getChannelUploads, getPlaylistVideos } from "@/lib/youtube";
 const FOLDER_EMOJI: Record<Folder, string> = {
   "Songs & Learning": "🎵",
   Shows: "📺",
+  Vehicles: "🚜",
 };
 
 export default async function WatchPage() {

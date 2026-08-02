@@ -5,7 +5,7 @@ export type ApprovedVideo = {
 };
 
 /** Folders group the tabs below into a first screen of big, simple buckets. */
-export type Folder = "Songs & Learning" | "Shows";
+export type Folder = "Songs & Learning" | "Shows" | "Vehicles";
 
 export type ApprovedChannel = {
   id: string;
@@ -46,6 +46,7 @@ export const APPROVED_CHANNELS: ApprovedChannel[] = [
   { id: "bluey", channelId: "UCVzLLZkDuFGAE2BGdBuBNBg", name: "Bluey", folder: "Shows" },
   { id: "disney-jr", channelId: "UCNcdbMyA59zE-Vk668bKWOg", name: "Disney Jr", folder: "Shows" },
   { id: "paw-patrol", channelId: "UCSVSJ1OCSv5ClFgKFTHIDew", name: "PAW Patrol", folder: "Shows" },
+  { id: "the-mud-tour", channelId: "UC0Melcr-RF_kOQNonS5SqJg", name: "The Mud Tour", folder: "Vehicles" },
 ];
 
 /**
