@@ -11,15 +11,20 @@ export default function KioskShell({ children }: { children: React.ReactNode }) 
   const { profile, ready } = useProfile();
 
   const isPicker = pathname === "/";
+  // The TV kiosk entry point has no profile picker and no navigation to
+  // any other section — it's meant to be the only thing reachable on a
+  // locked-down TV browser, so it skips the profile gate and nav chrome
+  // entirely, same as the picker screen.
+  const isTv = pathname.startsWith("/tv");
 
   useEffect(() => {
     if (!ready) return;
-    if (!profile && !isPicker) {
+    if (!profile && !isPicker && !isTv) {
       router.replace("/");
     }
-  }, [ready, profile, isPicker, router]);
+  }, [ready, profile, isPicker, isTv, router]);
 
-  if (isPicker) {
+  if (isPicker || isTv) {
     return <>{children}</>;
   }
 

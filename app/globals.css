@@ -78,6 +78,15 @@ body {
   transform: scale(0.94);
 }
 
+/* TV-remote / keyboard focus ring — invisible on touch/mouse taps since
+   :focus-visible only engages for keyboard/D-pad navigation. */
+button:focus-visible,
+a:focus-visible {
+  outline: 5px solid var(--warm);
+  outline-offset: 3px;
+  border-radius: 1rem;
+}
+
 @keyframes gentle-bob {
   0%,
   100% {
