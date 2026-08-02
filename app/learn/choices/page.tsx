@@ -50,7 +50,7 @@ export default function ChoicesPage() {
 
   function choose(option: Option) {
     setSelections((prev) => ({ ...prev, [setId]: option.id }));
-    speak(`I want ${option.label}!`);
+    speak(`I would like ${option.label}!`);
     award("great-chooser");
   }
 
@@ -78,7 +78,7 @@ export default function ChoicesPage() {
           <div className="tap-pop relative w-full flex items-center justify-center gap-3 bg-learn text-white rounded-3xl shadow-lg px-6 py-4">
             <span className="text-4xl">🙋</span>
             <span className="text-2xl font-extrabold">
-              I want {chosen.emoji} {chosen.label}!
+              I would like {chosen.emoji} {chosen.label}!
             </span>
             <span className="absolute left-10 -bottom-2 w-4 h-4 bg-learn rotate-45" />
           </div>
