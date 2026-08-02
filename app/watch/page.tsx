@@ -1,6 +1,17 @@
-import WatchClient, { type VideoCategory } from "@/components/WatchClient";
-import { APPROVED_VIDEOS, APPROVED_CHANNELS, APPROVED_PLAYLISTS } from "@/lib/approved-videos";
+import WatchClient, { type VideoCategory, type VideoFolder } from "@/components/WatchClient";
+import {
+  APPROVED_VIDEOS,
+  APPROVED_CHANNELS,
+  APPROVED_PLAYLISTS,
+  VIDEOS_FOLDER,
+  type Folder,
+} from "@/lib/approved-videos";
 import { getChannelUploads, getPlaylistVideos } from "@/lib/youtube";
+
+const FOLDER_EMOJI: Record<Folder, string> = {
+  "Songs & Learning": "🎵",
+  Shows: "📺",
+};
 
 export default async function WatchPage() {
   const [channelResults, playlistResults] = await Promise.all([
@@ -18,21 +29,33 @@ export default async function WatchPage() {
     ),
   ]);
 
-  const categories: VideoCategory[] = [
-    { id: "videos", label: "My Videos", emoji: "⭐", videos: APPROVED_VIDEOS },
+  const categories: (VideoCategory & { folder: Folder })[] = [
+    { id: "videos", label: "My Videos", emoji: "⭐", videos: APPROVED_VIDEOS, folder: VIDEOS_FOLDER },
     ...playlistResults.map(({ playlist, videos }) => ({
       id: playlist.id,
       label: playlist.name,
       emoji: "📋",
       videos,
+      folder: playlist.folder,
     })),
     ...channelResults.map(({ channel, videos }) => ({
       id: channel.id,
       label: channel.name,
       emoji: "📺",
       videos,
+      folder: channel.folder,
     })),
   ].filter((cat) => cat.videos.length > 0);
 
-  return <WatchClient categories={categories} />;
+  const folders: VideoFolder[] = [];
+  for (const { folder, ...category } of categories) {
+    let bucket = folders.find((f) => f.id === folder);
+    if (!bucket) {
+      bucket = { id: folder, label: folder, emoji: FOLDER_EMOJI[folder], categories: [] };
+      folders.push(bucket);
+    }
+    bucket.categories.push(category);
+  }
+
+  return <WatchClient folders={folders} />;
 }

@@ -11,19 +11,34 @@ export type VideoCategory = {
   videos: ApprovedVideo[];
 };
 
-export default function WatchClient({ categories }: { categories: VideoCategory[] }) {
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
+export type VideoFolder = {
+  id: string;
+  label: string;
+  emoji: string;
+  categories: VideoCategory[];
+};
+
+export default function WatchClient({ folders }: { folders: VideoFolder[] }) {
+  const [folderId, setFolderId] = useState(folders.length === 1 ? folders[0].id : "");
+  const [categoryId, setCategoryId] = useState("");
   const [selected, setSelected] = useState<ApprovedVideo | null>(null);
 
-  const category = categories.find((c) => c.id === categoryId);
+  const folder = folders.find((f) => f.id === folderId);
+  const categories = folder?.categories ?? [];
+  const category = categories.find((c) => c.id === categoryId) ?? categories[0];
 
-  if (categories.length === 0) {
+  if (folders.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 text-center">
         <PageHeading emoji="📺" title="Watch" />
         <p className="text-foreground/50 text-lg">No videos yet!</p>
       </div>
     );
+  }
+
+  function pickFolder(id: string) {
+    setFolderId(id);
+    setCategoryId("");
   }
 
   if (selected) {
@@ -58,26 +73,56 @@ export default function WatchClient({ categories }: { categories: VideoCategory[
     );
   }
 
+  if (!folder) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-10 max-w-4xl mx-auto">
+        <PageHeading emoji="📺" title="Watch" subtitle="Pick a folder!" />
+        <div className="grid grid-cols-2 gap-8 w-full">
+          {folders.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => pickFolder(f.id)}
+              className="tap-pop flex flex-col items-center justify-center gap-5 rounded-[2.5rem] p-8 aspect-square text-white shadow-lg"
+              style={{ background: "linear-gradient(160deg, var(--watch), var(--watch-dark))" }}
+            >
+              <span className="text-7xl md:text-8xl drop-shadow">{f.emoji}</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-center leading-tight drop-shadow">
+                {f.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-4xl mx-auto">
-      <PageHeading emoji="📺" title="Watch" subtitle="Tap a video to play it!" />
+      <PageHeading emoji={folder.emoji} title={folder.label} subtitle="Tap a video to play it!" />
 
-      {categories.length > 1 && (
-        <div className="flex gap-3 flex-wrap justify-center">
-          {categories.map((cat) => (
+      <div className="flex gap-3 flex-wrap justify-center">
+        {folders.length > 1 && (
+          <button
+            onClick={() => setFolderId("")}
+            className="tap-pop px-5 py-3 rounded-2xl font-bold shadow bg-white text-foreground/70"
+          >
+            📁 Folders
+          </button>
+        )}
+        {categories.length > 1 &&
+          categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setCategoryId(cat.id)}
               className={`tap-pop px-5 py-3 rounded-2xl font-bold shadow flex items-center gap-2 ${
-                cat.id === categoryId ? "text-white" : "bg-white text-foreground/70"
+                cat.id === category?.id ? "text-white" : "bg-white text-foreground/70"
               }`}
-              style={cat.id === categoryId ? { background: "var(--watch)" } : undefined}
+              style={cat.id === category?.id ? { background: "var(--watch)" } : undefined}
             >
               {cat.emoji} {cat.label}
             </button>
           ))}
-        </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 w-full pb-10">
         {category?.videos.map((video) => (

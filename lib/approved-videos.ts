@@ -4,17 +4,25 @@ export type ApprovedVideo = {
   title: string;
 };
 
+/** Folders group the tabs below into a first screen of big, simple buckets. */
+export type Folder = "Songs & Learning" | "Shows";
+
 export type ApprovedChannel = {
   id: string;
   channelId: string;
   name: string;
+  folder: Folder;
 };
 
 export type ApprovedPlaylist = {
   id: string;
   playlistId: string;
   name: string;
+  folder: Folder;
 };
+
+/** Which folder the hand-picked individual videos above belong in. */
+export const VIDEOS_FOLDER: Folder = "Songs & Learning";
 
 /**
  * Individually watched-and-approved videos. Safest tier — nothing here
@@ -34,7 +42,10 @@ export const APPROVED_VIDEOS: ApprovedVideo[] = [
  * automatically without a review step.
  */
 export const APPROVED_CHANNELS: ApprovedChannel[] = [
-  { id: "ms-rachel", channelId: "UCG2CL6EUjG8TVT1Tpl9nJdg", name: "Ms Rachel" },
+  { id: "ms-rachel", channelId: "UCG2CL6EUjG8TVT1Tpl9nJdg", name: "Ms Rachel", folder: "Songs & Learning" },
+  { id: "bluey", channelId: "UCVzLLZkDuFGAE2BGdBuBNBg", name: "Bluey", folder: "Shows" },
+  { id: "disney-jr", channelId: "UCNcdbMyA59zE-Vk668bKWOg", name: "Disney Jr", folder: "Shows" },
+  { id: "paw-patrol", channelId: "UCSVSJ1OCSv5ClFgKFTHIDew", name: "PAW Patrol", folder: "Shows" },
 ];
 
 /**
@@ -46,5 +57,5 @@ export const APPROVED_CHANNELS: ApprovedChannel[] = [
  * URL's "list=" parameter below.
  */
 export const APPROVED_PLAYLISTS: ApprovedPlaylist[] = [
-  { id: "kids-approved-videos", playlistId: "PLGT-cs6iQ9hA", name: "Kids Approved Videos" },
+  { id: "kids-approved-videos", playlistId: "PLGT-cs6iQ9hA", name: "Kids Approved Videos", folder: "Songs & Learning" },
 ];
