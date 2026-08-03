@@ -16,6 +16,7 @@ export type VideoFolder = {
   label: string;
   emoji: string;
   categories: VideoCategory[];
+  coverVideoId?: string;
 };
 
 function enterFullscreen() {
@@ -60,7 +61,8 @@ function loadYouTubeApi(): Promise<void> {
 }
 
 export default function WatchClient({ folders, tvMode = false }: { folders: VideoFolder[]; tvMode?: boolean }) {
-  const [folderId, setFolderId] = useState(folders.length === 1 ? folders[0].id : "");
+  const initialFolderId = folders.length === 1 ? folders[0].id : "";
+  const [folderId, setFolderId] = useState(initialFolderId);
   const [categoryId, setCategoryId] = useState("");
   const [selected, setSelected] = useState<ApprovedVideo | null>(null);
 
@@ -71,15 +73,68 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const selectedRef = useRef(selected);
+  const folderIdRef = useRef(folderId);
   const categoryVideosRef = useRef<ApprovedVideo[]>([]);
+  const markerArmedRef = useRef(false);
 
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
 
   useEffect(() => {
+    folderIdRef.current = folderId;
+  }, [folderId]);
+
+  useEffect(() => {
     categoryVideosRef.current = category?.videos ?? [];
   }, [category]);
+
+  // Folder/video selection is otherwise just local state with no browser
+  // history at all, so the TV remote's back button (which drives the
+  // WebView's canGoBack/goBack, not our own code) has nothing to step
+  // through and exits the app immediately. We push a single re-armable
+  // "marker" history entry whenever we go below the top level; popstate
+  // pops exactly one in-app layer using the CURRENT state (refs, not
+  // whatever happens to be stored on the entry — Next.js's own router
+  // also touches history, so entry-stored state isn't reliable), then
+  // re-arms the marker if another layer remains, and only lets a further
+  // back press actually exit once we're back at the top.
+  function ensureMarker() {
+    if (markerArmedRef.current) return;
+    history.pushState({ marker: true }, "");
+    markerArmedRef.current = true;
+  }
+
+  // The YouTube IFrame API replaces the target div's contents directly
+  // (outside React's knowledge), so it must be torn down synchronously
+  // before the state change that unmounts that div — otherwise React's
+  // own reconciliation tries to remove DOM nodes that no longer match
+  // what it expects and throws (NotFoundError: removeChild).
+  function teardownPlayer() {
+    playerRef.current?.destroy();
+    playerRef.current = null;
+    if (playerContainerRef.current) playerContainerRef.current.innerHTML = "";
+  }
+
+  useEffect(() => {
+    function onPopState() {
+      markerArmedRef.current = false;
+      if (selectedRef.current) {
+        if (tvMode) exitFullscreen();
+        teardownPlayer();
+        setSelected(null);
+        if (folders.length > 1) ensureMarker();
+        return;
+      }
+      if (folderIdRef.current && folders.length > 1) {
+        setFolderId("");
+        setCategoryId("");
+      }
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function advanceToNext() {
     const videos = categoryVideosRef.current;
@@ -128,10 +183,11 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   }, [selected?.videoId]);
 
   useEffect(() => {
-    if (selected) return;
-    playerRef.current?.destroy();
-    playerRef.current = null;
-  }, [selected]);
+    return () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, []);
 
   if (folders.length === 0) {
     return (
@@ -143,18 +199,19 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   }
 
   function pickFolder(id: string) {
+    ensureMarker();
     setFolderId(id);
     setCategoryId("");
   }
 
   function playVideo(video: ApprovedVideo) {
     if (tvMode) enterFullscreen();
+    ensureMarker();
     setSelected(video);
   }
 
   function backToVideos() {
-    if (tvMode) exitFullscreen();
-    setSelected(null);
+    history.back();
   }
 
   if (selected) {
@@ -211,7 +268,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
         <PageHeading emoji="📺" title="Watch" subtitle="Pick a folder!" />
         <div className="grid grid-cols-2 landscape:grid-cols-3 gap-8 landscape:gap-4 w-full">
           {folders.map((f) => {
-            const coverVideoId = f.categories[0]?.videos[0]?.videoId;
+            const coverVideoId = f.coverVideoId ?? f.categories[0]?.videos[0]?.videoId;
             return (
               <button
                 key={f.id}
@@ -246,7 +303,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
       <div className="flex gap-3 flex-wrap justify-center">
         {folders.length > 1 && (
           <button
-            onClick={() => setFolderId("")}
+            onClick={() => history.back()}
             className="tap-pop px-5 py-3 rounded-2xl font-bold shadow bg-white text-foreground/70"
           >
             📁 Folders

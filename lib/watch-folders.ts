@@ -14,6 +14,13 @@ const FOLDER_EMOJI: Record<Folder, string> = {
   Vehicles: "🚜",
 };
 
+// Overrides the folder tile's cover still — otherwise it defaults to the
+// first video of the first category, which can land on an awkward frame
+// (e.g. a person mid-shot) since that's just whatever the API returns first.
+const FOLDER_COVER_OVERRIDE: Partial<Record<Folder, string>> = {
+  Vehicles: "JJKvq-S_0Rg",
+};
+
 export async function getWatchFolders(): Promise<VideoFolder[]> {
   const [channelResults, playlistResults] = await Promise.all([
     Promise.all(
@@ -52,7 +59,13 @@ export async function getWatchFolders(): Promise<VideoFolder[]> {
   for (const { folder, ...category } of categories) {
     let bucket = folders.find((f) => f.id === folder);
     if (!bucket) {
-      bucket = { id: folder, label: folder, emoji: FOLDER_EMOJI[folder], categories: [] };
+      bucket = {
+        id: folder,
+        label: folder,
+        emoji: FOLDER_EMOJI[folder],
+        categories: [],
+        coverVideoId: FOLDER_COVER_OVERRIDE[folder],
+      };
       folders.push(bucket);
     }
     bucket.categories.push(category);
