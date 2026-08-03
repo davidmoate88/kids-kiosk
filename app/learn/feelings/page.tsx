@@ -38,18 +38,18 @@ export default function FeelingsPage() {
 
   if (selected) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-6 landscape:gap-3 px-6 text-center">
         <StickerToast sticker={justEarned} />
         {selected.needsCalm ? (
           <>
-            <div className="w-40 h-40 rounded-full bg-learn/70 breathe" />
-            <p className="text-3xl font-extrabold">Breathe in... breathe out...</p>
-            <p className="text-xl text-foreground/70 max-w-sm">{selected.message}</p>
+            <div className="w-40 h-40 landscape:w-24 landscape:h-24 rounded-full bg-learn/70 breathe" />
+            <p className="text-3xl landscape:text-xl font-extrabold">Breathe in... breathe out...</p>
+            <p className="text-xl landscape:text-base text-foreground/70 max-w-sm">{selected.message}</p>
           </>
         ) : (
           <>
-            <p className="text-8xl gentle-bob">{selected.emoji}</p>
-            <p className="text-3xl font-extrabold">{selected.message}</p>
+            <p className="text-8xl landscape:text-5xl gentle-bob">{selected.emoji}</p>
+            <p className="text-3xl landscape:text-xl font-extrabold">{selected.message}</p>
           </>
         )}
         <BigButton onClick={() => setSelected(null)} color="var(--learn)" colorDark="var(--learn-dark)">
@@ -60,17 +60,17 @@ export default function FeelingsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-6 landscape:gap-3 max-w-3xl mx-auto">
       <PageHeading emoji="😊" title="How am I feeling?" />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full pb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 landscape:grid-cols-4 gap-4 landscape:gap-2 w-full pb-6 landscape:pb-2">
         {FEELINGS.map((f) => (
           <button
             key={f.id}
             onClick={() => pick(f)}
-            className="tap-pop flex flex-col items-center gap-2 rounded-2xl p-4 bg-white shadow-lg"
+            className="tap-pop flex flex-col items-center gap-2 landscape:gap-1 rounded-2xl p-4 landscape:p-2 bg-white shadow-lg"
           >
-            <span className="text-6xl">{f.emoji}</span>
-            <span className="text-lg font-bold">{f.label}</span>
+            <span className="text-6xl landscape:text-4xl">{f.emoji}</span>
+            <span className="text-lg landscape:text-sm font-bold">{f.label}</span>
           </button>
         ))}
       </div>

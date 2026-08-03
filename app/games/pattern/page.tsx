@@ -91,7 +91,7 @@ export default function PatternGamePage() {
 
   if (phase === "idle") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-6 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-6 gap-6 text-center">
         <PageHeading emoji="🧠" title="Pattern Pals" subtitle="Watch the friends, then copy them back!" />
         <BigButton onClick={start} color="var(--games)" colorDark="var(--games-dark)">
           Start
@@ -101,27 +101,27 @@ export default function PatternGamePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 max-w-lg mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-4 landscape:gap-2 max-w-lg mx-auto">
       <StickerToast sticker={justEarned} />
       <div className="flex items-center justify-between w-full">
-        <h1 className="text-2xl font-extrabold">🧠 Pattern Pals</h1>
-        <div className="text-xl font-bold text-games-dark">Round {round}</div>
+        <h1 className="text-2xl landscape:text-xl font-extrabold">🧠 Pattern Pals</h1>
+        <div className="text-xl landscape:text-lg font-bold text-games-dark">Round {round}</div>
       </div>
 
-      <p className="text-lg font-bold text-foreground/60 h-8">
+      <p className="text-lg landscape:text-base font-bold text-foreground/60 h-8 landscape:h-6">
         {phase === "showing" && "Watch closely..."}
         {phase === "input" && "Your turn!"}
         {phase === "success" && "Yes! Great job! 🎉"}
         {phase === "retry" && "Let's watch again!"}
       </p>
 
-      <div className="grid grid-cols-2 gap-4 w-full">
+      <div className="grid grid-cols-2 gap-4 landscape:gap-2 w-full landscape:max-w-xs">
         {PADS.map((pad) => (
           <button
             key={pad.id}
             onClick={() => tapPad(pad.id)}
             disabled={phase !== "input"}
-            className="tap-pop aspect-square rounded-[2rem] shadow-lg flex items-center justify-center text-7xl transition-transform"
+            className="tap-pop aspect-square rounded-[2rem] shadow-lg flex items-center justify-center text-7xl landscape:text-5xl transition-transform"
             style={{
               background: pad.color,
               transform: activePad === pad.id ? "scale(1.08)" : "scale(1)",

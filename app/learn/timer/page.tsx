@@ -65,9 +65,9 @@ export default function TimerPage() {
 
   if (total === null) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8 max-w-3xl mx-auto">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-6 py-6 landscape:py-3 gap-8 landscape:gap-4 max-w-3xl mx-auto">
         <PageHeading emoji="⏳" title="Timer" subtitle="How long shall we count down?" />
-        <div className="grid grid-cols-2 gap-5 w-full max-w-sm">
+        <div className="grid grid-cols-2 gap-5 landscape:gap-3 w-full max-w-sm">
           {PRESETS.map((p) => (
             <button
               key={p.seconds}
@@ -88,18 +88,18 @@ export default function TimerPage() {
   const ss = remaining % 60;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-8">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-6 py-4 landscape:py-2 gap-8 landscape:gap-4">
       <StickerToast sticker={justEarned} />
       <div
-        className="rounded-full flex items-center justify-center shadow-xl"
+        className="rounded-full flex items-center justify-center shadow-xl landscape:!w-[190px] landscape:!h-[190px]"
         style={{
           width: 260,
           height: 260,
           background: `conic-gradient(var(--warm) ${pct}%, #eceae4 ${pct}%)`,
         }}
       >
-        <div className="rounded-full bg-white w-[190px] h-[190px] flex items-center justify-center">
-          <span className="text-4xl font-extrabold tabular-nums">
+        <div className="rounded-full bg-white w-[190px] h-[190px] landscape:!w-[135px] landscape:!h-[135px] flex items-center justify-center">
+          <span className="text-4xl landscape:text-2xl font-extrabold tabular-nums">
             {mm}:{ss.toString().padStart(2, "0")}
           </span>
         </div>

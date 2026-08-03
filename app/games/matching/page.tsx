@@ -94,11 +94,11 @@ export default function MatchingGamePage() {
   const canLevelUp = pairCount < maxPairCount;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-8 max-w-4xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-8 landscape:gap-3 max-w-4xl mx-auto">
       <StickerToast sticker={justEarned} />
       <div className="flex items-center justify-between w-full">
-        <h1 className="text-3xl font-extrabold">🃏 Matching</h1>
-        <div className="text-2xl font-bold text-games-dark">Tries: {moves}</div>
+        <h1 className="text-3xl landscape:text-xl font-extrabold">🃏 Matching</h1>
+        <div className="text-2xl landscape:text-lg font-bold text-games-dark">Tries: {moves}</div>
       </div>
 
       {allMatched ? (
@@ -116,7 +116,7 @@ export default function MatchingGamePage() {
         </div>
       ) : (
         <div
-          className="grid gap-4 w-full"
+          className="grid gap-4 landscape:gap-2 w-full landscape:max-w-2xl landscape:mx-auto"
           style={{ gridTemplateColumns: `repeat(${pairCount <= 3 ? 3 : 4}, minmax(0, 1fr))` }}
         >
           {deck.map((card) => {
@@ -125,7 +125,7 @@ export default function MatchingGamePage() {
               <button
                 key={card.id}
                 onClick={() => tapCard(card)}
-                className="tap-pop aspect-square rounded-2xl shadow-lg text-6xl md:text-7xl flex items-center justify-center"
+                className="tap-pop aspect-square rounded-2xl shadow-lg text-6xl md:text-7xl landscape:text-4xl flex items-center justify-center"
                 style={{
                   background: isFlipped
                     ? "linear-gradient(160deg, #ffffff, #f1e9ff)"

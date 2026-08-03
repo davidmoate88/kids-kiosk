@@ -55,11 +55,11 @@ export default function ChoicesPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-6 landscape:gap-3 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🤔" title="I Choose" subtitle="Tap a picture to ask for it!" />
 
-      <div className="flex gap-3 flex-wrap justify-center">
+      <div className="flex gap-3 landscape:gap-2 flex-wrap justify-center">
         {SETS.map((s) => (
           <button
             key={s.id}
@@ -73,28 +73,28 @@ export default function ChoicesPage() {
         ))}
       </div>
 
-      <div className="w-full max-w-md min-h-24 flex items-center justify-center">
+      <div className="w-full max-w-md min-h-24 landscape:min-h-16 flex items-center justify-center">
         {chosen ? (
-          <div className="tap-pop relative w-full flex items-center justify-center gap-3 bg-learn text-white rounded-3xl shadow-lg px-6 py-4">
-            <span className="text-4xl">🙋</span>
-            <span className="text-2xl font-extrabold">
+          <div className="tap-pop relative w-full flex items-center justify-center gap-3 bg-learn text-white rounded-3xl shadow-lg px-6 py-4 landscape:py-2">
+            <span className="text-4xl landscape:text-2xl">🙋</span>
+            <span className="text-2xl landscape:text-lg font-extrabold">
               I would like {chosen.emoji} {chosen.label}!
             </span>
             <span className="absolute left-10 -bottom-2 w-4 h-4 bg-learn rotate-45" />
           </div>
         ) : (
-          <p className="text-lg font-bold text-foreground/40">👉 Show a grown-up what you want!</p>
+          <p className="text-lg landscape:text-base font-bold text-foreground/40">👉 Show a grown-up what you want!</p>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-6 pt-2 pb-10">
+      <div className="flex flex-wrap items-center justify-center gap-6 landscape:gap-3 pt-2 pb-10 landscape:pb-2">
         {set.options.map((opt) => {
           const isChosen = chosenId === opt.id;
           return (
             <button
               key={opt.id}
               onClick={() => choose(opt)}
-              className="tap-pop relative flex flex-col items-center gap-2 rounded-3xl p-6 w-40 shadow-lg bg-white"
+              className="tap-pop relative flex flex-col items-center gap-2 rounded-3xl p-6 landscape:p-3 w-40 landscape:w-28 shadow-lg bg-white"
               style={{
                 outline: isChosen ? "5px solid var(--learn-dark)" : "none",
                 outlineOffset: 3,

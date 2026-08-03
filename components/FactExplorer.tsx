@@ -135,11 +135,11 @@ export function FactExplorer({ config }: { config: FactExplorerConfig }) {
 
   if (selected) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-6 landscape:gap-3 px-6 text-center">
         <StickerToast sticker={justEarned} />
-        <ItemIcon item={selected} config={config} size="lg" className="gentle-bob" />
-        <p className="text-3xl font-extrabold">{selected.name}</p>
-        <p className="text-xl font-medium text-foreground/70 max-w-md">{selected.fact}</p>
+        <ItemIcon item={selected} config={config} size="lg" className="gentle-bob landscape:!w-24 landscape:!h-24" />
+        <p className="text-3xl landscape:text-2xl font-extrabold">{selected.name}</p>
+        <p className="text-xl landscape:text-lg font-medium text-foreground/70 max-w-md">{selected.fact}</p>
         <BigButton onClick={() => setSelected(null)} color={config.colorVar} colorDark={config.colorDarkVar}>
           Back
         </BigButton>
@@ -149,11 +149,11 @@ export function FactExplorer({ config }: { config: FactExplorerConfig }) {
 
   if (quizDone) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-6 landscape:gap-3 px-6 text-center">
         <StickerToast sticker={justEarned} />
-        <p className="text-7xl">🎉</p>
-        <p className="text-3xl font-extrabold">Great job, {profile?.name}!</p>
-        <p className="text-xl text-foreground/60">You know so much about {config.topicLabel}!</p>
+        <p className="text-7xl landscape:text-5xl">🎉</p>
+        <p className="text-3xl landscape:text-2xl font-extrabold">Great job, {profile?.name}!</p>
+        <p className="text-xl landscape:text-lg text-foreground/60">You know so much about {config.topicLabel}!</p>
         <div className="flex flex-wrap justify-center gap-4">
           <BigButton onClick={startQuiz} color={config.colorVar} colorDark={config.colorDarkVar}>
             Quiz Again
@@ -168,15 +168,15 @@ export function FactExplorer({ config }: { config: FactExplorerConfig }) {
 
   if (quiz) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-8 max-w-2xl mx-auto text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 gap-8 landscape:gap-4 max-w-2xl mx-auto text-center">
         <div className="flex items-center justify-between w-full">
-          <h1 className="text-2xl font-extrabold">❓ Quiz Time</h1>
-          <div className="text-xl font-bold" style={{ color: config.colorDarkVar }}>
+          <h1 className="text-2xl landscape:text-xl font-extrabold">❓ Quiz Time</h1>
+          <div className="text-xl landscape:text-lg font-bold" style={{ color: config.colorDarkVar }}>
             Round {quiz.round} / {totalRounds}
           </div>
         </div>
-        <p className="text-2xl md:text-3xl font-extrabold">Which one is the {quiz.target.name}?</p>
-        <div className="flex flex-wrap items-center justify-center gap-6">
+        <p className="text-2xl md:text-3xl landscape:text-xl font-extrabold">Which one is the {quiz.target.name}?</p>
+        <div className="flex flex-wrap items-center justify-center gap-6 landscape:gap-3">
           {quiz.options.map((opt) => {
             const isPicked = quiz.pickedId === opt.id;
             const showCorrect = !!quiz.feedback && opt.id === quiz.target.id;
@@ -186,7 +186,7 @@ export function FactExplorer({ config }: { config: FactExplorerConfig }) {
                 key={opt.id}
                 onClick={() => answerQuiz(opt)}
                 disabled={!!quiz.feedback}
-                className="tap-pop relative flex flex-col items-center gap-2 rounded-3xl p-6 w-40 shadow-lg bg-white"
+                className="tap-pop relative flex flex-col items-center gap-2 landscape:gap-1 rounded-3xl p-6 landscape:p-3 w-40 landscape:w-32 shadow-lg bg-white"
                 style={{
                   outline: showCorrect ? "5px solid var(--learn)" : showWrong ? "5px solid var(--danger)" : "none",
                   outlineOffset: 3,
@@ -205,11 +205,11 @@ export function FactExplorer({ config }: { config: FactExplorerConfig }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-4xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-6 landscape:py-4 gap-6 landscape:gap-3 max-w-4xl landscape:max-w-6xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji={config.headingEmoji} title={config.title} subtitle={config.subtitle} />
 
-      <div className="flex gap-3 flex-wrap justify-center">
+      <div className="flex gap-3 landscape:gap-2 flex-wrap justify-center">
         {config.categories.map((cat) => {
           const catDone = config.items.filter((i) => i.category === cat.id).every((i) => explored[i.id]);
           return (
@@ -228,7 +228,7 @@ export function FactExplorer({ config }: { config: FactExplorerConfig }) {
         })}
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 w-full pb-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 landscape:grid-cols-6 gap-4 landscape:gap-2 w-full pb-4 landscape:pb-2">
         {categoryItems.map((item) => (
           <button
             key={item.id}

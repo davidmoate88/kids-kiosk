@@ -41,7 +41,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
 
   if (folders.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 gap-4 text-center">
         <PageHeading emoji="📺" title="Watch" />
         <p className="text-foreground/50 text-lg">No videos yet!</p>
       </div>
@@ -84,9 +84,9 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
       <iframe
         key={selected.videoId}
         className="absolute inset-0 w-full h-full"
-        src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1&playsinline=1&loop=1&playlist=${selected.videoId}`}
+        src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1&playsinline=1&loop=1&autoplay=1&playlist=${selected.videoId}`}
         title={selected.title}
-        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
       />
     );
@@ -107,8 +107,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
     }
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
-        <p className="text-2xl font-extrabold text-center">{selected.title}</p>
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 gap-6 landscape:gap-3 max-w-3xl landscape:max-w-4xl mx-auto">
+        <p className="text-2xl landscape:text-lg font-extrabold text-center">{selected.title}</p>
         <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-xl bg-black">
           {iframe}
           {shields}
@@ -122,16 +122,16 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
 
   if (!folder) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-10 max-w-4xl mx-auto">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-6 py-6 landscape:py-4 gap-10 landscape:gap-4 max-w-4xl landscape:max-w-6xl mx-auto">
         <PageHeading emoji="📺" title="Watch" subtitle="Pick a folder!" />
-        <div className="grid grid-cols-2 gap-8 w-full">
+        <div className="grid grid-cols-2 landscape:grid-cols-3 gap-8 landscape:gap-4 w-full">
           {folders.map((f) => {
             const coverVideoId = f.categories[0]?.videos[0]?.videoId;
             return (
               <button
                 key={f.id}
                 onClick={() => pickFolder(f.id)}
-                className="tap-pop relative flex items-end justify-center aspect-square rounded-[2.5rem] text-white shadow-lg overflow-hidden"
+                className="tap-pop relative flex items-end justify-center aspect-square landscape:aspect-video rounded-[2.5rem] text-white shadow-lg overflow-hidden"
                 style={{ background: "linear-gradient(160deg, var(--watch), var(--watch-dark))" }}
               >
                 {coverVideoId && (
@@ -142,8 +142,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                <span className="relative flex items-center gap-2 px-5 pb-6 text-2xl md:text-3xl font-extrabold text-center leading-tight drop-shadow">
-                  <span className="text-3xl md:text-4xl">{f.emoji}</span>
+                <span className="relative flex items-center gap-2 px-5 pb-6 landscape:pb-4 text-2xl md:text-3xl landscape:text-xl font-extrabold text-center leading-tight drop-shadow">
+                  <span className="text-3xl md:text-4xl landscape:text-2xl">{f.emoji}</span>
                   {f.label}
                 </span>
               </button>
@@ -155,7 +155,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-4xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-6 landscape:py-4 gap-6 landscape:gap-3 max-w-4xl landscape:max-w-6xl mx-auto">
       <PageHeading emoji={folder.emoji} title={folder.label} subtitle="Tap a video to play it!" />
 
       <div className="flex gap-3 flex-wrap justify-center">
@@ -197,12 +197,12 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           })}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 w-full pb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 landscape:grid-cols-4 gap-5 landscape:gap-3 w-full pb-10 landscape:pb-4">
         {category?.videos.map((video) => (
           <button
             key={video.id}
             onClick={() => playVideo(video)}
-            className="tap-pop flex flex-col items-center gap-2 rounded-3xl p-3 shadow-lg bg-white"
+            className="tap-pop flex flex-col items-center gap-2 landscape:gap-1 rounded-3xl p-3 landscape:p-2 shadow-lg bg-white"
           >
             <span className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/10">
               <img
@@ -210,7 +210,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
                 alt={video.title}
                 className="w-full h-full object-cover"
               />
-              <span className="absolute inset-0 flex items-center justify-center text-4xl drop-shadow">▶️</span>
+              <span className="absolute inset-0 flex items-center justify-center text-4xl landscape:text-3xl drop-shadow">▶️</span>
             </span>
             <span className="text-sm font-bold text-center leading-tight">{video.title}</span>
           </button>

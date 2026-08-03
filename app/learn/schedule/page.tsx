@@ -45,20 +45,20 @@ export default function SchedulePage() {
   const cardById = (id: string | null) => CARDS.find((c) => c.id === id) ?? null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-6 landscape:gap-3 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🗓️" title="First, Then" subtitle={held ? `Tap a box to place "${cardById(held)?.label}"` : "Tap a card, then tap a box"} />
 
-      <div className="flex gap-4 w-full max-w-md">
+      <div className="flex gap-4 landscape:gap-2 w-full max-w-md landscape:max-w-xs">
         <Slot label="FIRST" card={cardById(first)} onTap={() => tapSlot("first")} />
         <Slot label="THEN" card={cardById(then)} onTap={() => tapSlot("then")} />
       </div>
 
       {first && then && (
-        <p className="text-2xl font-extrabold text-learn-dark">✅ All set! Off we go!</p>
+        <p className="text-2xl landscape:text-xl font-extrabold text-learn-dark">✅ All set! Off we go!</p>
       )}
 
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 w-full max-w-2xl pb-4">
+      <div className="grid grid-cols-3 sm:grid-cols-5 landscape:grid-cols-6 gap-3 landscape:gap-2 w-full max-w-2xl landscape:max-w-4xl pb-4 landscape:pb-1">
         {CARDS.map((card) => (
           <button
             key={card.id}
@@ -75,7 +75,7 @@ export default function SchedulePage() {
 
       <button
         onClick={clearAll}
-        className="tap-pop mb-6 flex items-center gap-2 rounded-2xl px-6 py-3 bg-white shadow font-bold text-foreground/70"
+        className="tap-pop mb-6 landscape:mb-2 flex items-center gap-2 rounded-2xl px-6 py-3 landscape:py-2 bg-white shadow font-bold text-foreground/70"
       >
         🧹 Clear
       </button>

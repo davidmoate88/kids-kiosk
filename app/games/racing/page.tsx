@@ -104,25 +104,25 @@ export default function RacingGamePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 max-w-3xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-4 landscape:gap-2 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <div className="flex items-center justify-between w-full">
-        <div className="flex gap-1 text-3xl">
+        <div className="flex gap-1 text-3xl landscape:text-2xl">
           {[0, 1, 2].map((i) => (
             <span key={i}>{i < hearts ? "❤️" : "🤍"}</span>
           ))}
         </div>
-        <h1 className="text-2xl font-extrabold">🚲 Bike Race</h1>
-        <div className="flex items-center gap-2 text-2xl font-extrabold text-games-dark">
+        <h1 className="text-2xl landscape:text-xl font-extrabold">🚲 Bike Race</h1>
+        <div className="flex items-center gap-2 text-2xl landscape:text-xl font-extrabold text-games-dark">
           <span>⭐</span>
           <span>{score}</span>
         </div>
       </div>
 
       <div
-        className="relative w-full max-w-md overflow-hidden rounded-[2rem] border-4 border-white shadow-xl"
+        className="relative w-full max-w-md landscape:max-w-xs overflow-hidden rounded-[2rem] border-4 border-white shadow-xl"
         style={{
-          height: "62vh",
+          height: "62dvh",
           background:
             "repeating-linear-gradient(180deg, #6b7280 0px, #6b7280 40px, #57606f 40px, #57606f 80px)",
         }}
@@ -189,24 +189,24 @@ export default function RacingGamePage() {
       </div>
 
       {!finished && (
-        <div className="flex items-center gap-8 w-full justify-center pb-4">
+        <div className="flex items-center gap-8 landscape:gap-4 w-full justify-center pb-4 landscape:pb-1">
           <button
             onClick={() => moveLane(-1)}
-            className="tap-pop w-24 h-24 rounded-full bg-games text-white text-4xl shadow-lg flex items-center justify-center"
+            className="tap-pop w-24 h-24 landscape:w-16 landscape:h-16 rounded-full bg-games text-white text-4xl landscape:text-2xl shadow-lg flex items-center justify-center"
             aria-label="Move left"
           >
             ⬅️
           </button>
           <button
             onClick={() => setPaused((p) => !p)}
-            className="tap-pop w-16 h-16 rounded-full bg-white border-4 border-games text-2xl shadow flex items-center justify-center"
+            className="tap-pop w-16 h-16 landscape:w-12 landscape:h-12 rounded-full bg-white border-4 border-games text-2xl landscape:text-lg shadow flex items-center justify-center"
             aria-label="Pause"
           >
             {paused ? "▶️" : "⏸️"}
           </button>
           <button
             onClick={() => moveLane(1)}
-            className="tap-pop w-24 h-24 rounded-full bg-games text-white text-4xl shadow-lg flex items-center justify-center"
+            className="tap-pop w-24 h-24 landscape:w-16 landscape:h-16 rounded-full bg-games text-white text-4xl landscape:text-2xl shadow-lg flex items-center justify-center"
             aria-label="Move right"
           >
             ➡️

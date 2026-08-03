@@ -19,13 +19,13 @@ export default function RewardsPage() {
   }, [profile]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 max-w-4xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-6 landscape:py-4 gap-4 landscape:gap-3 max-w-4xl landscape:max-w-6xl mx-auto">
       <PageHeading
         emoji="🏅"
         title="My Stickers"
         subtitle={`${earned.length} of ${STICKERS.length} collected`}
       />
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-5 w-full pb-10">
+      <div className="grid grid-cols-3 sm:grid-cols-4 landscape:grid-cols-6 gap-5 landscape:gap-3 w-full pb-10 landscape:pb-4">
         {STICKERS.map((sticker) => {
           const has = earned.includes(sticker.id);
           return (

@@ -85,7 +85,7 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
 
   if (!current) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-4 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 gap-4 text-center">
         <PageHeading emoji="🖍️" title="Colouring" />
         <p className="text-foreground/50 text-lg">No pictures yet!</p>
       </div>
@@ -95,32 +95,32 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
   const isComplete = svgPicture ? isSvgComplete : !!rasterDone[pictureId];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-6 landscape:py-3 gap-6 landscape:gap-3 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🖍️" title="Colouring" />
 
-      <div className="flex gap-4 overflow-x-auto w-full px-2 pb-1">
+      <div className="flex gap-4 landscape:gap-2 overflow-x-auto w-full px-2 pb-1">
         {items.map((item) => (
           <button
             key={item.id}
             onClick={() => setPictureId(item.id)}
-            className={`tap-pop shrink-0 flex flex-col items-center gap-1 px-5 py-3 rounded-2xl shadow ${
+            className={`tap-pop shrink-0 flex flex-col items-center gap-1 px-5 landscape:px-3 py-3 landscape:py-2 rounded-2xl shadow ${
               item.id === pictureId ? "bg-colouring text-white" : "bg-white"
             }`}
           >
             {item.kind === "svg" ? (
-              <span className="text-4xl">{item.emoji}</span>
+              <span className="text-4xl landscape:text-2xl">{item.emoji}</span>
             ) : item.kind === "draw" ? (
-              <span className="text-4xl">✏️</span>
+              <span className="text-4xl landscape:text-2xl">✏️</span>
             ) : (
-              <span className="text-4xl">🖼️</span>
+              <span className="text-4xl landscape:text-2xl">🖼️</span>
             )}
-            <span className="text-base font-bold">{item.name}</span>
+            <span className="text-base landscape:text-sm font-bold">{item.name}</span>
           </button>
         ))}
       </div>
 
-      <div className="relative w-full max-w-xl aspect-square rounded-[2rem] bg-white shadow-xl p-6">
+      <div className="relative w-full max-w-xl aspect-square landscape:aspect-auto landscape:h-[42dvh] landscape:w-[42dvh] rounded-[2rem] bg-white shadow-xl p-6 landscape:p-3">
         {svgPicture ? (
           <ColouringSvg picture={svgPicture} colors={colors} onRegionClick={paintRegion} />
         ) : current.kind === "draw" ? (
@@ -135,12 +135,12 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
         {isComplete && <div className="absolute -top-3 -right-3 text-5xl gentle-bob">✅</div>}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-4 max-w-lg">
+      <div className="flex flex-wrap items-center justify-center gap-4 landscape:gap-2 max-w-lg">
         {PALETTE.map((c) => (
           <button
             key={c}
             onClick={() => setSelectedColor(c)}
-            className="tap-pop w-14 h-14 rounded-full shadow-md"
+            className="tap-pop w-14 h-14 landscape:w-10 landscape:h-10 rounded-full shadow-md"
             style={{
               background: c,
               outline: selectedColor === c ? "5px solid var(--colouring-dark)" : "3px solid rgba(0,0,0,0.15)",
@@ -151,17 +151,17 @@ export default function ColouringClient({ userImages }: { userImages: UserImage[
         ))}
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 landscape:gap-2 mb-6 landscape:mb-2">
         <button
           onClick={clearPicture}
-          className="tap-pop flex items-center gap-2 rounded-2xl px-8 py-4 bg-white shadow font-bold text-xl text-foreground/70"
+          className="tap-pop flex items-center gap-2 rounded-2xl px-8 landscape:px-5 py-4 landscape:py-2 bg-white shadow font-bold text-xl landscape:text-base text-foreground/70"
         >
           🧹 Clear
         </button>
         {!svgPicture && !isComplete && (
           <button
             onClick={markRasterDone}
-            className="tap-pop flex items-center gap-2 rounded-2xl px-8 py-4 shadow font-bold text-xl text-white"
+            className="tap-pop flex items-center gap-2 rounded-2xl px-8 landscape:px-5 py-4 landscape:py-2 shadow font-bold text-xl landscape:text-base text-white"
             style={{ background: "linear-gradient(160deg, var(--learn), var(--learn-dark))" }}
           >
             ✅ All Done!

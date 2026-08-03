@@ -62,13 +62,13 @@ export default function WorkBoxPage() {
 
   if (phase === "setup") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-6 landscape:gap-3 max-w-3xl mx-auto">
         <PageHeading
           emoji="🧺"
           title="My Work Box"
           subtitle={`Pick up to ${MAX_TASKS} things to do`}
         />
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 w-full max-w-2xl">
+        <div className="grid grid-cols-3 sm:grid-cols-4 landscape:grid-cols-6 gap-3 landscape:gap-2 w-full max-w-2xl landscape:max-w-4xl">
           {TASK_CARDS.map((card) => {
             const pickedIndex = queue.findIndex((c) => c.id === card.id);
             const picked = pickedIndex !== -1;
@@ -106,20 +106,20 @@ export default function WorkBoxPage() {
     const upcoming = queue.slice(index + 1);
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+      <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-6 landscape:gap-3 max-w-3xl mx-auto">
         <StickerToast sticker={justEarned} />
         <PageHeading emoji="🧺" title="My Work Box" subtitle={`${finished.length + 1} of ${queue.length}`} />
 
-        <div className="flex flex-col items-center gap-3 bg-white rounded-[2rem] shadow-xl p-10">
-          <span className="text-8xl gentle-bob">{current.emoji}</span>
-          <span className="text-2xl font-extrabold">{current.label}</span>
+        <div className="flex flex-col items-center gap-3 landscape:gap-1 bg-white rounded-[2rem] shadow-xl p-10 landscape:p-5">
+          <span className="text-8xl landscape:text-5xl gentle-bob">{current.emoji}</span>
+          <span className="text-2xl landscape:text-lg font-extrabold">{current.label}</span>
         </div>
 
         <BigButton onClick={finishCurrent} color="var(--learn)" colorDark="var(--learn-dark)">
           ✅ Finished!
         </BigButton>
 
-        <div className="flex items-start justify-between w-full max-w-lg pb-6 gap-4">
+        <div className="flex items-start justify-between w-full max-w-lg pb-6 landscape:pb-2 gap-4 landscape:gap-2">
           <div className="flex-1">
             <p className="text-xs font-extrabold text-foreground/40 uppercase tracking-wide mb-2">
               Still to do
@@ -152,10 +152,10 @@ export default function WorkBoxPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+    <div className="min-h-dvh flex flex-col items-center justify-center gap-6 landscape:gap-3 px-6 text-center">
       <StickerToast sticker={justEarned} />
-      <p className="text-6xl">🎉</p>
-      <p className="text-3xl font-extrabold">All Finished!</p>
+      <p className="text-6xl landscape:text-4xl">🎉</p>
+      <p className="text-3xl landscape:text-2xl font-extrabold">All Finished!</p>
       <div className="flex flex-wrap justify-center gap-2 max-w-sm">
         {finished.map((c) => (
           <span key={c.id} className="text-4xl">

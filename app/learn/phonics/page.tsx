@@ -28,11 +28,11 @@ export default function PhonicsPage() {
 
   if (selected) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-6 landscape:gap-3 px-6 text-center">
         <StickerToast sticker={justEarned} />
-        <p className="text-8xl font-extrabold text-learn-dark">{selected.letters}</p>
-        <p className="text-7xl gentle-bob">{selected.emoji}</p>
-        <p className="text-3xl font-extrabold">{selected.keyword}</p>
+        <p className="text-8xl landscape:text-5xl font-extrabold text-learn-dark">{selected.letters}</p>
+        <p className="text-7xl landscape:text-4xl gentle-bob">{selected.emoji}</p>
+        <p className="text-3xl landscape:text-xl font-extrabold">{selected.keyword}</p>
         <BigButton onClick={() => setSelected(null)} color="var(--learn)" colorDark="var(--learn-dark)">
           Back to Letters
         </BigButton>
@@ -41,11 +41,11 @@ export default function PhonicsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 gap-6 max-w-3xl mx-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-4 landscape:py-2 gap-6 landscape:gap-3 max-w-3xl mx-auto">
       <StickerToast sticker={justEarned} />
       <PageHeading emoji="🔤" title="Letter Sounds" subtitle="Tap a letter to hear it!" />
 
-      <div className="flex gap-3 flex-wrap justify-center">
+      <div className="flex gap-3 landscape:gap-2 flex-wrap justify-center">
         {PHONICS_SETS.map((set, i) => {
           const isDone = set.graphemes.every((g) => explored[g.id]);
           return (
@@ -63,15 +63,15 @@ export default function PhonicsPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-4 gap-4 w-full max-w-lg pb-10">
+      <div className="grid grid-cols-4 landscape:grid-cols-6 gap-4 landscape:gap-2 w-full max-w-lg landscape:max-w-2xl pb-10 landscape:pb-2">
         {currentSet.graphemes.map((g) => (
           <button
             key={g.id}
             onClick={() => pick(g)}
             className="tap-pop aspect-square rounded-3xl shadow-lg flex flex-col items-center justify-center gap-1 bg-white"
           >
-            <span className="text-4xl font-extrabold text-learn-dark">{g.letters}</span>
-            <span className="text-2xl">{g.emoji}</span>
+            <span className="text-4xl landscape:text-2xl font-extrabold text-learn-dark">{g.letters}</span>
+            <span className="text-2xl landscape:text-lg">{g.emoji}</span>
           </button>
         ))}
       </div>
