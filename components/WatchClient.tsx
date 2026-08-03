@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
 import type { ApprovedVideo } from "@/lib/approved-videos";
 
@@ -30,6 +30,35 @@ function exitFullscreen() {
   }
 }
 
+declare global {
+  interface Window {
+    YT?: { Player: new (el: HTMLElement, opts: Record<string, unknown>) => YTPlayer };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+type YTPlayer = {
+  loadVideoById: (videoId: string) => void;
+  destroy: () => void;
+};
+
+let ytApiPromise: Promise<void> | null = null;
+function loadYouTubeApi(): Promise<void> {
+  if (window.YT?.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve) => {
+    const previous = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      resolve();
+    };
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(script);
+  });
+  return ytApiPromise;
+}
+
 export default function WatchClient({ folders, tvMode = false }: { folders: VideoFolder[]; tvMode?: boolean }) {
   const [folderId, setFolderId] = useState(folders.length === 1 ? folders[0].id : "");
   const [categoryId, setCategoryId] = useState("");
@@ -38,6 +67,71 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   const folder = folders.find((f) => f.id === folderId);
   const categories = folder?.categories ?? [];
   const category = categories.find((c) => c.id === categoryId) ?? categories[0];
+
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
+  const selectedRef = useRef(selected);
+  const categoryVideosRef = useRef<ApprovedVideo[]>([]);
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    categoryVideosRef.current = category?.videos ?? [];
+  }, [category]);
+
+  function advanceToNext() {
+    const videos = categoryVideosRef.current;
+    const current = selectedRef.current;
+    if (videos.length === 0 || !current) return;
+    const idx = videos.findIndex((v) => v.videoId === current.videoId);
+    setSelected(videos[idx === -1 ? 0 : (idx + 1) % videos.length]);
+  }
+
+  useEffect(() => {
+    if (!selected || !playerContainerRef.current) return;
+
+    if (playerRef.current) {
+      playerRef.current.loadVideoById(selected.videoId);
+      return;
+    }
+
+    let cancelled = false;
+    loadYouTubeApi().then(() => {
+      if (cancelled || !playerContainerRef.current || !window.YT) return;
+      playerRef.current = new window.YT.Player(playerContainerRef.current, {
+        videoId: selected.videoId,
+        width: "100%",
+        height: "100%",
+        host: "https://www.youtube-nocookie.com",
+        playerVars: {
+          rel: 0,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          disablekb: 1,
+          fs: 1,
+          playsinline: 1,
+          autoplay: 1,
+        },
+        events: {
+          onStateChange: (event: { data: number }) => {
+            if (event.data === 0) advanceToNext();
+          },
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.videoId]);
+
+  useEffect(() => {
+    if (selected) return;
+    playerRef.current?.destroy();
+    playerRef.current = null;
+  }, [selected]);
 
   if (folders.length === 0) {
     return (
@@ -80,21 +174,12 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
       </>
     );
 
-    const iframe = (
-      <iframe
-        key={selected.videoId}
-        className="absolute inset-0 w-full h-full"
-        src={`https://www.youtube-nocookie.com/embed/${selected.videoId}?rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=1&playsinline=1&loop=1&autoplay=1&playlist=${selected.videoId}`}
-        title={selected.title}
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
-    );
+    const player = <div ref={playerContainerRef} className="absolute inset-0 w-full h-full" />;
 
     if (tvMode) {
       return (
         <div className="fixed inset-0 w-screen h-screen bg-black">
-          {iframe}
+          {player}
           {shields}
           <button
             onClick={backToVideos}
@@ -110,7 +195,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
       <div className="min-h-dvh flex flex-col items-center justify-center px-4 gap-6 landscape:gap-3 max-w-3xl landscape:max-w-4xl mx-auto">
         <p className="text-2xl landscape:text-lg font-extrabold text-center">{selected.title}</p>
         <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-xl bg-black">
-          {iframe}
+          {player}
           {shields}
         </div>
         <BigButton onClick={backToVideos} color="var(--watch)" colorDark="var(--watch-dark)">
