@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
-import type { ApprovedVideo } from "@/lib/approved-videos";
+import type { ApprovedVideo } from "@/lib/watch-folders";
 import NavRail, { type TvScreen } from "@/components/tv/NavRail";
 import TvHome from "@/components/tv/TvHome";
 import TvDetail from "@/components/tv/TvDetail";

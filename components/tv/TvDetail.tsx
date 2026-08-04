@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
-import type { ApprovedVideo } from "@/lib/approved-videos";
+import type { ApprovedVideo } from "@/lib/watch-folders";
 import { categoryThumbnail, videoThumbnail } from "@/lib/youtube-thumbs";
 import { focusNearest, focusPreservingIndex, rememberFocus, recallFocus } from "@/lib/tv-focus";
 import { ChevronLeftIcon, PlayIcon, HeartIcon } from "./icons";

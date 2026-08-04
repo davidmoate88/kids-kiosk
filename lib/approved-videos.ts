@@ -1,3 +1,10 @@
+// As of the Phase 2 cutover, /watch and /tv read from Postgres
+// (lib/watch-folders.ts) instead of this file — everything below is now
+// only the bootstrap dataset for scripts/seed.ts, kept so a fresh database
+// (e.g. a new deployment) can be seeded with the original curated list
+// rather than starting empty. Edits here no longer affect the live app;
+// use the /parents dashboard instead.
+
 export type ApprovedVideo = {
   id: string;
   videoId: string;

@@ -1,6 +1,11 @@
 import TvApp from "@/components/TvApp";
 import { getWatchFolders } from "@/lib/watch-folders";
 
+// See app/watch/page.tsx — same reasoning: getWatchFolders() reads Postgres
+// directly, so this must be forced dynamic or new approvals would be
+// frozen out until the next rebuild.
+export const dynamic = "force-dynamic";
+
 /**
  * Locked-down entry point for a TV kiosk browser — only the approved
  * videos/channels are reachable, with no navigation to any other part

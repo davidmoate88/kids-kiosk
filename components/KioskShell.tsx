@@ -16,15 +16,19 @@ export default function KioskShell({ children }: { children: React.ReactNode }) 
   // locked-down TV browser, so it skips the profile gate and nav chrome
   // entirely, same as the picker screen.
   const isTv = pathname.startsWith("/tv");
+  // The parent dashboard is a separate, adult-facing area with its own
+  // auth (see auth.ts/proxy.ts) and layout — it has nothing to do with
+  // which kid profile is active, so it gets the same bypass as /tv.
+  const isParents = pathname.startsWith("/parents");
 
   useEffect(() => {
     if (!ready) return;
-    if (!profile && !isPicker && !isTv) {
+    if (!profile && !isPicker && !isTv && !isParents) {
       router.replace("/");
     }
-  }, [ready, profile, isPicker, isTv, router]);
+  }, [ready, profile, isPicker, isTv, isParents, router]);
 
-  if (isPicker || isTv) {
+  if (isPicker || isTv || isParents) {
     return <>{children}</>;
   }
 

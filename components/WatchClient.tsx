@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
-import type { ApprovedVideo } from "@/lib/approved-videos";
+import type { ApprovedVideo } from "@/lib/watch-folders";
 import {
   loadYouTubeApi,
   YT_STATE_PLAYING,

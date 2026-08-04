@@ -1,4 +1,4 @@
-import type { ApprovedVideo } from "./approved-videos";
+import type { ApprovedVideo } from "./watch-folders";
 
 type PlaylistItem = {
   snippet?: {

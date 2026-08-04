@@ -1,0 +1,21 @@
+# Local development only. Production Postgres hosting is a decision for
+# when this is actually deployed (see the Phase 2 plan) — this just gives
+# `npm run dev` something to talk to. On this particular dev machine Docker
+# isn't installed, so a native Homebrew postgresql@16 install is used
+# instead (same DB name/user/password as below) — this file is here for
+# portability to a machine that does have Docker.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kids_kiosk
+      POSTGRES_PASSWORD: dev_only_password
+      POSTGRES_DB: kids_kiosk
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

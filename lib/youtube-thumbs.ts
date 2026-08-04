@@ -1,5 +1,5 @@
 import type { VideoCategory } from "@/components/WatchClient";
-import type { ApprovedVideo } from "@/lib/approved-videos";
+import type { ApprovedVideo } from "@/lib/watch-folders";
 
 /** Cover art for a category (a "show" tile on the TV home screen) — the
  * first video's thumbnail unless a specific frame is overridden. */
