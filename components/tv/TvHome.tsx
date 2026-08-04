@@ -5,6 +5,7 @@ import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
 import { categoryThumbnail } from "@/lib/youtube-thumbs";
 import { averageColor } from "@/lib/dominant-color";
 import { loadYouTubeApi, type YTPlayer } from "@/lib/youtube-iframe-api";
+import { createYouTubeMountPoint, forceIframeFillContainer } from "@/lib/player-engine";
 import {
   focusInRow,
   focusNearest,
@@ -348,9 +349,11 @@ function HeroDwellPreview({ videoId }: { videoId?: string }) {
   useEffect(() => {
     if (!videoId || !containerRef.current) return;
     let cancelled = false;
+    let stopWatchingIframe: (() => void) | null = null;
     loadYouTubeApi().then(() => {
       if (cancelled || !containerRef.current || !window.YT) return;
-      playerRef.current = new window.YT.Player(containerRef.current, {
+      const mountEl = createYouTubeMountPoint(containerRef.current);
+      playerRef.current = new window.YT.Player(mountEl, {
         videoId,
         width: "100%",
         height: "100%",
@@ -363,9 +366,11 @@ function HeroDwellPreview({ videoId }: { videoId?: string }) {
           playsinline: 1,
         },
       });
+      stopWatchingIframe = forceIframeFillContainer(containerRef.current);
     });
     return () => {
       cancelled = true;
+      stopWatchingIframe?.();
       playerRef.current?.destroy();
       playerRef.current = null;
     };

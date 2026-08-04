@@ -149,7 +149,12 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
   if (!hasContent) {
     return (
       <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: "var(--tv-bg)" }}>
-        <div style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "center center" }}>
+        {/* shrink-0: without it, this is a flex item with no flex-shrink
+            override, so the flex algorithm compresses its *width* (not
+            height — items-center doesn't stretch the cross axis) to fit
+            the viewport, on top of — not instead of — the scale transform
+            below. That compounds into a squashed, non-uniform result. */}
+        <div className="shrink-0" style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "center center" }}>
           <TvNothingYet />
         </div>
       </div>
@@ -158,8 +163,9 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: "var(--tv-bg)" }}>
+      {/* shrink-0: see the comment on the equivalent !hasContent branch above. */}
       <div
-        className="relative"
+        className="relative shrink-0"
         style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "center center" }}
       >
         {screen !== "player" && <NavRail active={railActive} onNavigate={navigate} />}

@@ -175,7 +175,7 @@ export default function TvDetail({
           className="rounded-full px-3 py-1 text-base"
           style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
         >
-          YouTube
+          {firstVideo?.source === "stremio" ? "Stremio" : "YouTube"}
         </span>
       </p>
 
