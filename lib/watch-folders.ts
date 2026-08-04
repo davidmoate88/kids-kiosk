@@ -24,6 +24,9 @@ const FOLDER_EMOJI: Record<string, string> = {
   "Songs & Learning": "🎵",
   Shows: "📺",
   Vehicles: "🚜",
+  "Disney Junior": "🏰",
+  Superheroes: "🦸",
+  "Everyday Adventures": "🌟",
 };
 
 // Where individually hand-approved standalone videos (no catalogue) land —

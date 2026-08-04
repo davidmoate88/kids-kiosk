@@ -55,6 +55,16 @@ export async function toggleSyncEnabled(catalogueId: string, next: boolean) {
   revalidatePath("/parents/sources");
 }
 
+export async function updateCatalogueFolder(catalogueId: string, folder: string) {
+  const trimmed = folder.trim();
+  if (!trimmed) return;
+  const db = getDb();
+  await db.update(catalogues).set({ folder: trimmed }).where(eq(catalogues.id, catalogueId));
+  revalidatePath("/parents/sources");
+  revalidatePath("/watch");
+  revalidatePath("/tv");
+}
+
 export async function syncNow(catalogueId: string) {
   await syncCatalogue(catalogueId);
   revalidatePath("/parents/sources");

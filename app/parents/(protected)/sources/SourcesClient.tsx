@@ -2,11 +2,18 @@
 
 import { useActionState, useTransition } from "react";
 import type { catalogues } from "@/db/schema";
-import { addCatalogue, type AddCatalogueState, syncNow, toggleAutoApprove, toggleSyncEnabled } from "./actions";
+import {
+  addCatalogue,
+  type AddCatalogueState,
+  syncNow,
+  toggleAutoApprove,
+  toggleSyncEnabled,
+  updateCatalogueFolder,
+} from "./actions";
 
 type CatalogueRow = typeof catalogues.$inferSelect;
 
-const FOLDER_SUGGESTIONS = ["Songs & Learning", "Shows", "Vehicles"];
+const DEFAULT_FOLDER_SUGGESTIONS = ["Songs & Learning", "Disney Junior", "Superheroes", "Everyday Adventures", "Vehicles"];
 
 const fieldStyle = { background: "var(--tv-bg)", border: "1px solid var(--tv-divider)" } as const;
 
@@ -31,6 +38,7 @@ export default function SourcesClient({
 }) {
   const [state, formAction, pending] = useActionState<AddCatalogueState, FormData>(addCatalogueAction, undefined);
   const [, startTransition] = useTransition();
+  const folderSuggestions = [...new Set([...DEFAULT_FOLDER_SUGGESTIONS, ...catalogues.map((c) => c.folder)])];
 
   return (
     <div className="flex flex-col gap-8">
@@ -49,7 +57,7 @@ export default function SourcesClient({
             <div className="min-w-48 flex-1">
               <div className="font-medium">{c.name}</div>
               <div className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
-                {c.kind} · {c.folder} ·{" "}
+                {c.kind} ·{" "}
                 {c.status === "error"
                   ? "last sync failed"
                   : c.lastSyncAt
@@ -57,6 +65,22 @@ export default function SourcesClient({
                     : "never synced"}
               </div>
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              Folder
+              <input
+                defaultValue={c.folder}
+                list="folder-suggestions"
+                className="w-40 rounded-lg px-2 py-1 text-sm"
+                style={fieldStyle}
+                onBlur={(e) => {
+                  const next = e.target.value.trim();
+                  if (!next || next === c.folder) return;
+                  startTransition(() => {
+                    updateCatalogueFolder(c.id, next);
+                  });
+                }}
+              />
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -126,7 +150,7 @@ export default function SourcesClient({
             style={fieldStyle}
           />
           <datalist id="folder-suggestions">
-            {FOLDER_SUGGESTIONS.map((f) => (
+            {folderSuggestions.map((f) => (
               <option key={f} value={f} />
             ))}
           </datalist>
