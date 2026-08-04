@@ -3,15 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { VideoCategory } from "@/components/WatchClient";
 import type { ApprovedVideo } from "@/lib/watch-folders";
-import {
-  loadYouTubeApi,
-  YT_STATE_ENDED,
-  YT_STATE_PLAYING,
-  YT_STATE_BUFFERING,
-  type YTPlayer,
-} from "@/lib/youtube-iframe-api";
+import type { PlaybackSource, PlayerHandle } from "@/lib/player-engine";
+import { youtubePlayerEngine } from "@/lib/youtube-player-engine";
+import { html5PlayerEngine } from "@/lib/html5-player-engine";
 import { focusInRow } from "@/lib/tv-focus";
-import { ChevronLeftIcon, PlayIcon, PauseIcon, SkipBackIcon, SkipForwardIcon, CloudSlashIcon } from "./icons";
+import { ChevronLeftIcon, PlayIcon, PauseIcon, SkipBackIcon, SkipForwardIcon, CloudSlashIcon, PopcornIcon } from "./icons";
 
 const SEEK_STEP_SECONDS = 20;
 const CONTROLS_HIDE_MS = 4000;
@@ -47,7 +43,8 @@ export default function TvPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const [streamError, setStreamError] = useState(false);
-  const playerRef = useRef<YTPlayer | null>(null);
+  const [resolving, setResolving] = useState(video.source === "stremio");
+  const playerRef = useRef<PlayerHandle | null>(null);
   const playPauseRef = useRef<HTMLButtonElement>(null);
 
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -68,17 +65,17 @@ export default function TvPlayer({
 
   function togglePlayPause() {
     const player = playerRef.current;
-    if (!player || typeof player.getPlayerState !== "function") return;
+    if (!player) return;
     const state = player.getPlayerState();
-    if (state === YT_STATE_PLAYING || state === YT_STATE_BUFFERING) player.pauseVideo();
+    if (state === "playing" || state === "buffering") player.pauseVideo();
     else player.playVideo();
   }
 
   function seek(deltaSeconds: number) {
     const player = playerRef.current;
-    if (!player || typeof player.getCurrentTime !== "function") return;
+    if (!player) return;
     const target = Math.max(0, player.getCurrentTime() + deltaSeconds);
-    player.seekTo(target, true);
+    player.seekTo(target);
   }
 
   function showControls() {
@@ -87,47 +84,46 @@ export default function TvPlayer({
     hideTimer.current = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_MS);
   }
 
-  // Mount the player. Same IFrame API integration as WatchClient/the home
-  // dwell preview; the __tvRemotePlayPause bridge contract below is exactly
-  // what kids-kiosk-tv's MainActivity already calls — must not change shape.
+  // Mount the player — the engine (YouTube IFrame vs HTML5+hls.js) is picked
+  // by video.source; both share the same PlayerHandle shape so none of the
+  // chrome below needs to know which one is actually driving playback. The
+  // __tvRemotePlayPause bridge contract further down is exactly what
+  // kids-kiosk-tv's MainActivity already calls — must not change shape.
   useEffect(() => {
     if (!containerRef.current) return;
     setStreamError(false);
-    let cancelled = false;
-    loadYouTubeApi().then(() => {
-      if (cancelled || !containerRef.current || !window.YT) return;
-      playerRef.current = new window.YT.Player(containerRef.current, {
-        videoId: video.videoId,
-        width: "100%",
-        height: "100%",
-        host: "https://www.youtube-nocookie.com",
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          rel: 0,
-          iv_load_policy: 3,
-          fs: 0,
-        },
-        events: {
-          onStateChange: (e: { data: number }) => {
-            setIsPlaying(e.data === YT_STATE_PLAYING || e.data === YT_STATE_BUFFERING);
-            if (e.data === YT_STATE_ENDED) {
-              if (nextVideo) onNextCardOpenChange(true);
-              else onBack();
-            }
-          },
-          // A child must never hit a dead end: a removed/private/region-
-          // blocked video shows "having a nap" instead of a blank/broken
-          // embed. Real dead-stream *detection* ahead of time needs
-          // stream_health (Phase 2+); this only catches it at play time.
-          onError: () => setStreamError(true),
-        },
-      });
+    setResolving(video.source === "stremio");
+
+    const engine = video.source === "youtube" ? youtubePlayerEngine : html5PlayerEngine;
+    const source: PlaybackSource =
+      video.source === "youtube"
+        ? { source: "youtube", videoId: video.videoId }
+        : {
+            source: "stremio",
+            imdbId: video.imdbId!,
+            mediaType: video.mediaType!,
+            season: video.season,
+            episode: video.episode,
+          };
+
+    playerRef.current = engine.mount(containerRef.current, source, {
+      onStateChange: (state) => {
+        setResolving(state === "resolving");
+        setIsPlaying(state === "playing" || state === "buffering");
+      },
+      onEnded: () => {
+        if (nextVideo) onNextCardOpenChange(true);
+        else onBack();
+      },
+      // A child must never hit a dead end: a removed/private/region-blocked
+      // YouTube video, or a Stremio title AIOStreams couldn't resolve to
+      // anything browser-playable, both show "having a nap" instead of a
+      // blank/broken player. Real dead-stream *detection* ahead of time
+      // needs stream_health (Phase 2+); this only catches it at play time.
+      onError: () => setStreamError(true),
     });
+
     return () => {
-      cancelled = true;
       playerRef.current?.destroy();
       playerRef.current = null;
     };
@@ -148,10 +144,10 @@ export default function TvPlayer({
   useEffect(() => {
     const poll = setInterval(() => {
       const player = playerRef.current;
-      // The IFrame API returns the player object synchronously, but its
-      // methods aren't guaranteed to exist until onReady actually fires —
-      // this poll starts immediately on mount, so it can tick before then.
-      if (!player || typeof player.getDuration !== "function") return;
+      // Both engines' PlayerHandle methods are always real functions and
+      // return safe defaults (0) before they're actually ready to report —
+      // no readiness guard needed here, unlike a raw YT.Player reference.
+      if (!player) return;
       const dur = player.getDuration();
       const cur = player.getCurrentTime();
       if (dur > 0) {
@@ -219,7 +215,7 @@ export default function TvPlayer({
   }, [nextCardOpen]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (nextCardOpen || streamError) return; // both are just normal buttons; Back is popstate, not a keydown
+    if (nextCardOpen || streamError || resolving) return; // both are just normal buttons; Back is popstate, not a keydown
 
     const wasHidden = !controlsVisible;
 
@@ -278,6 +274,18 @@ export default function TvPlayer({
     >
       <div ref={containerRef} className="absolute inset-0" />
 
+      {resolving && !streamError && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center text-white"
+          style={{ background: "var(--tv-bg)" }}
+        >
+          <PopcornIcon className="h-16 w-16 animate-pulse" style={{ color: "var(--tv-text-muted-2)" }} />
+          <h1 className="font-medium" style={{ fontSize: 40 }}>
+            Finding your show…
+          </h1>
+        </div>
+      )}
+
       {streamError && (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center text-white"
@@ -312,7 +320,7 @@ export default function TvPlayer({
         </div>
       )}
 
-      {!streamError && controlsVisible && !nextCardOpen && (
+      {!streamError && !resolving && controlsVisible && !nextCardOpen && (
         <>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black/85 to-transparent" />
 

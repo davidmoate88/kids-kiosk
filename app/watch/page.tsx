@@ -1,5 +1,5 @@
 import WatchClient from "@/components/WatchClient";
-import { getWatchFolders } from "@/lib/watch-folders";
+import { filterYouTubeOnly, getWatchFolders } from "@/lib/watch-folders";
 
 // getWatchFolders() now reads Postgres directly (no fetch() calls for Next
 // to attach cache/revalidate semantics to), so without this the page would
@@ -10,5 +10,6 @@ export const dynamic = "force-dynamic";
 
 export default async function WatchPage() {
   const folders = await getWatchFolders();
-  return <WatchClient folders={folders} />;
+  // /watch has no Stremio playback engine yet (v1 scope is /tv-only).
+  return <WatchClient folders={filterYouTubeOnly(folders)} />;
 }

@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -16,6 +17,8 @@ export const catalogueKindEnum = pgEnum("catalogue_kind", ["channel", "playlist"
 export const approvedScopeEnum = pgEnum("approved_scope", ["all", "episodes"]);
 
 export const queueStateEnum = pgEnum("queue_state", ["pending", "approved", "skipped"]);
+
+export const stremioMediaTypeEnum = pgEnum("stremio_media_type", ["movie", "series"]);
 
 // --- Tables ---
 
@@ -100,6 +103,68 @@ export const approvalQueue = pgTable("approval_queue", {
   uniqueIndex("approval_queue_episode_idx").on(table.episodeId),
 ]);
 
+// A parent has marked a whole Stremio catalog row (from stremio-platform-catalogs,
+// e.g. "Disney+ Series") fully trusted — current and future titles in it are
+// auto-approved with no per-title review. Presence in this table *is* the trust;
+// removing a row stops future discovery but deliberately does not retroactively
+// un-approve titles already pulled in (see stremioTitles.trustedRowId's onDelete).
+export const stremioTrustedRows = pgTable("stremio_trusted_rows", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  catalogId: text("catalog_id").notNull().unique(),
+  label: text("label").notNull(),
+  folder: text("folder").notNull(),
+  mediaType: stremioMediaTypeEnum("media_type").notNull(),
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+  status: text("status").notNull().default("ok"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// One row per approved Stremio title (movie or series), from any of the three
+// curation modes (search, browse, or a trusted row's auto-discovery). Unlike
+// YouTube's titles/approvedContent split, there's no synced-but-unapproved
+// intermediate state here: for search/browse the approve action *is* the
+// creation, and a trusted row's new titles are approved by definition of being
+// trusted — so scope/approvedEpisodeIds exist only for schema parity with
+// approvedContent and are inert in v1 (every approval path resolves to 'all';
+// there's no per-catalogue auto-approve toggle to derive 'episodes' from the way
+// YouTube's approveTitle does).
+export const stremioTitles = pgTable("stremio_titles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  imdbId: text("imdb_id").notNull(),
+  mediaType: stremioMediaTypeEnum("media_type").notNull(),
+  name: text("name").notNull(),
+  posterUrl: text("poster_url"),
+  // Null when individually approved via search or browse; set when pulled in by
+  // a trusted row's auto-discovery. "set null" (not cascade) on purpose —
+  // untrusting a row should stop *new* titles, not retroactively yank away shows
+  // the kids already watch.
+  trustedRowId: uuid("trusted_row_id").references(() => stremioTrustedRows.id, { onDelete: "set null" }),
+  // Only meaningful when trustedRowId is null — a trusted-row title inherits its
+  // row's folder at read time instead.
+  folder: text("folder"),
+  scope: approvedScopeEnum("scope").notNull().default("all"),
+  approvedEpisodeIds: uuid("approved_episode_ids").array().notNull().default([]),
+  approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
+  cachedAt: timestamp("cached_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("stremio_titles_imdb_media_type_idx").on(table.imdbId, table.mediaType),
+]);
+
+// Individual episodes of an approved series, populated from Cinemeta. Movies
+// have no rows here — a movie's single stream is resolved directly from its
+// stremioTitles.imdbId.
+export const stremioEpisodes = pgTable("stremio_episodes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stremioTitleId: uuid("stremio_title_id").notNull().references(() => stremioTitles.id, { onDelete: "cascade" }),
+  season: integer("season").notNull(),
+  episode: integer("episode").notNull(),
+  name: text("name").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+}, (table) => [
+  uniqueIndex("stremio_episodes_title_season_episode_idx").on(table.stremioTitleId, table.season, table.episode),
+]);
+
 // --- Relations ---
 
 export const cataloguesRelations = relations(catalogues, ({ one }) => ({
@@ -144,5 +209,24 @@ export const approvalQueueRelations = relations(approvalQueue, ({ one }) => ({
   episode: one(episodes, {
     fields: [approvalQueue.episodeId],
     references: [episodes.id],
+  }),
+}));
+
+export const stremioTrustedRowsRelations = relations(stremioTrustedRows, ({ many }) => ({
+  titles: many(stremioTitles),
+}));
+
+export const stremioTitlesRelations = relations(stremioTitles, ({ one, many }) => ({
+  trustedRow: one(stremioTrustedRows, {
+    fields: [stremioTitles.trustedRowId],
+    references: [stremioTrustedRows.id],
+  }),
+  episodes: many(stremioEpisodes),
+}));
+
+export const stremioEpisodesRelations = relations(stremioEpisodes, ({ one }) => ({
+  title: one(stremioTitles, {
+    fields: [stremioEpisodes.stremioTitleId],
+    references: [stremioTitles.id],
   }),
 }));

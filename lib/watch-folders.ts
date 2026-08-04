@@ -1,12 +1,23 @@
 import { eq } from "drizzle-orm";
 import type { VideoCategory, VideoFolder } from "@/components/WatchClient";
 import { getDb } from "@/db";
-import { approvedContent, catalogues, episodes, titles } from "@/db/schema";
+import { approvedContent, catalogues, episodes, stremioEpisodes, stremioTitles, stremioTrustedRows, titles } from "@/db/schema";
 
 export type ApprovedVideo = {
   id: string;
+  // Stable unique id used for equality/keys/thumbnail derivation across both
+  // sources: the real YouTube video id, or (Stremio) the imdbId for a movie /
+  // "imdbId:season:episode" for an episode. Never parsed back apart — the
+  // structured fields below (imdbId/season/episode) are what playback
+  // actually uses to resolve a stream.
   videoId: string;
   title: string;
+  source: "youtube" | "stremio";
+  posterUrl?: string;
+  imdbId?: string;
+  mediaType?: "movie" | "series";
+  season?: number;
+  episode?: number;
 };
 
 const FOLDER_EMOJI: Record<string, string> = {
@@ -26,7 +37,7 @@ const FOLDER_COVER_OVERRIDE: Record<string, string> = {
   Vehicles: "JJKvq-S_0Rg",
 };
 
-export async function getWatchFolders(): Promise<VideoFolder[]> {
+async function getYouTubeCategories(): Promise<(VideoCategory & { folder: string })[]> {
   const db = getDb();
 
   const approved = await db
@@ -63,7 +74,12 @@ export async function getWatchFolders(): Promise<VideoFolder[]> {
     if (titleEpisodes.length === 0 && !t.catalogueId) {
       // Standalone hand-approved video (no catalogue, no episodes rows) —
       // the title itself IS the video.
-      standaloneVideos.push({ id: t.titleExternalId, videoId: t.titleExternalId, title: t.titleName });
+      standaloneVideos.push({
+        id: t.titleExternalId,
+        videoId: t.titleExternalId,
+        title: t.titleName,
+        source: "youtube",
+      });
       continue;
     }
 
@@ -75,7 +91,12 @@ export async function getWatchFolders(): Promise<VideoFolder[]> {
       id: t.catalogueId ?? t.titleId,
       label: t.catalogueName ?? t.titleName,
       emoji: t.catalogueKind === "playlist" ? "📋" : "📺",
-      videos: visibleEpisodes.map((e) => ({ id: e.externalId, videoId: e.externalId, title: e.name })),
+      videos: visibleEpisodes.map((e) => ({
+        id: e.externalId,
+        videoId: e.externalId,
+        title: e.name,
+        source: "youtube" as const,
+      })),
       folder: t.folder ?? STANDALONE_FOLDER,
     });
   }
@@ -90,6 +111,78 @@ export async function getWatchFolders(): Promise<VideoFolder[]> {
     });
   }
 
+  return categories;
+}
+
+async function getStremioCategories(): Promise<(VideoCategory & { folder: string })[]> {
+  const db = getDb();
+
+  const rows = await db.select().from(stremioTrustedRows);
+  const rowById = new Map(rows.map((r) => [r.id, r]));
+
+  const approvedTitles = await db.select().from(stremioTitles);
+  const allEpisodes = await db.select().from(stremioEpisodes);
+  const episodesByTitle = new Map<string, typeof allEpisodes>();
+  for (const ep of allEpisodes) {
+    const list = episodesByTitle.get(ep.stremioTitleId) ?? [];
+    list.push(ep);
+    episodesByTitle.set(ep.stremioTitleId, list);
+  }
+
+  const categories: (VideoCategory & { folder: string })[] = [];
+
+  for (const t of approvedTitles) {
+    const folder = t.folder ?? (t.trustedRowId ? rowById.get(t.trustedRowId)?.folder : undefined) ?? STANDALONE_FOLDER;
+
+    if (t.mediaType === "movie") {
+      categories.push({
+        id: t.id,
+        label: t.name,
+        emoji: "🎬",
+        videos: [
+          {
+            id: t.id,
+            videoId: t.imdbId,
+            title: t.name,
+            source: "stremio",
+            posterUrl: t.posterUrl ?? undefined,
+            imdbId: t.imdbId,
+            mediaType: "movie",
+          },
+        ],
+        folder,
+      });
+      continue;
+    }
+
+    const titleEpisodes = (episodesByTitle.get(t.id) ?? [])
+      .slice()
+      .sort((a, b) => (a.season - b.season) || (a.episode - b.episode));
+    if (titleEpisodes.length === 0) continue;
+
+    categories.push({
+      id: t.id,
+      label: t.name,
+      emoji: "📺",
+      videos: titleEpisodes.map((e) => ({
+        id: e.id,
+        videoId: `${t.imdbId}:${e.season}:${e.episode}`,
+        title: e.name,
+        source: "stremio" as const,
+        posterUrl: e.thumbnailUrl ?? t.posterUrl ?? undefined,
+        imdbId: t.imdbId,
+        mediaType: "series" as const,
+        season: e.season,
+        episode: e.episode,
+      })),
+      folder,
+    });
+  }
+
+  return categories;
+}
+
+function groupIntoFolders(categories: (VideoCategory & { folder: string })[]): VideoFolder[] {
   const folders: VideoFolder[] = [];
   for (const { folder, ...category } of categories) {
     let bucket = folders.find((f) => f.id === folder);
@@ -105,6 +198,30 @@ export async function getWatchFolders(): Promise<VideoFolder[]> {
     }
     bucket.categories.push(category);
   }
-
   return folders;
+}
+
+export async function getWatchFolders(): Promise<VideoFolder[]> {
+  const [youtubeCategories, stremioCategories] = await Promise.all([
+    getYouTubeCategories(),
+    getStremioCategories(),
+  ]);
+  return groupIntoFolders([...youtubeCategories, ...stremioCategories]);
+}
+
+// /watch has no Stremio playback engine (v1 scope is /tv-only — see the
+// Phase 3 plan), so it renders this instead of the full merged set. Prunes
+// any folder that ends up with nothing left rather than showing an empty tile.
+export function filterYouTubeOnly(folders: VideoFolder[]): VideoFolder[] {
+  return folders
+    .map((folder) => ({
+      ...folder,
+      categories: folder.categories
+        .map((category) => ({
+          ...category,
+          videos: category.videos.filter((v) => v.source === "youtube"),
+        }))
+        .filter((category) => category.videos.length > 0),
+    }))
+    .filter((folder) => folder.categories.length > 0);
 }

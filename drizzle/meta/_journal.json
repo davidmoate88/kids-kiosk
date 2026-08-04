@@ -8,6 +8,13 @@
       "when": 1785843548870,
       "tag": "0000_chief_riptide",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785856701811,
+      "tag": "0001_hesitant_surge",
+      "breakpoints": true
     }
   ]
 }

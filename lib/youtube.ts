@@ -1,5 +1,3 @@
-import type { ApprovedVideo } from "./watch-folders";
-
 type PlaylistItem = {
   snippet?: {
     title?: string;
@@ -7,7 +5,18 @@ type PlaylistItem = {
   };
 };
 
-async function fetchPlaylistVideos(playlistId: string, max: number): Promise<ApprovedVideo[]> {
+// This is the raw ingestion-layer shape (what the YouTube API actually
+// returns) — deliberately not lib/watch-folders.ts's ApprovedVideo, which is
+// the read/display-side shape covering both YouTube and Stremio. The two
+// happened to look identical before Phase 3 added Stremio fields to the
+// latter; keeping them separate now that they've diverged is more honest
+// than reusing a type that no longer means "a raw YouTube fetch result".
+export type YouTubeVideo = {
+  videoId: string;
+  title: string;
+};
+
+async function fetchPlaylistVideos(playlistId: string, max: number): Promise<YouTubeVideo[]> {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) return [];
 
@@ -22,7 +31,6 @@ async function fetchPlaylistVideos(playlistId: string, max: number): Promise<App
     return items
       .filter((item) => item.snippet?.resourceId?.videoId && item.snippet.title)
       .map((item) => ({
-        id: item.snippet!.resourceId!.videoId!,
         videoId: item.snippet!.resourceId!.videoId!,
         title: item.snippet!.title!,
       }));
@@ -38,7 +46,7 @@ async function fetchPlaylistVideos(playlistId: string, max: number): Promise<App
  * Returns [] whenever no API key is configured, so pages degrade
  * gracefully to just the individually-approved videos.
  */
-export async function getChannelUploads(channelId: string, max = 12): Promise<ApprovedVideo[]> {
+export async function getChannelUploads(channelId: string, max = 12): Promise<YouTubeVideo[]> {
   if (!channelId.startsWith("UC")) return [];
   return fetchPlaylistVideos("UU" + channelId.slice(2), max);
 }
@@ -51,6 +59,6 @@ export async function getChannelUploads(channelId: string, max = 12): Promise<Ap
  * readable this way (that needs OAuth), so the playlist must be set to
  * Public or Unlisted.
  */
-export async function getPlaylistVideos(playlistId: string, max = 25): Promise<ApprovedVideo[]> {
+export async function getPlaylistVideos(playlistId: string, max = 25): Promise<YouTubeVideo[]> {
   return fetchPlaylistVideos(playlistId, max);
 }

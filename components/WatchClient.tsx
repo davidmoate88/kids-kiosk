@@ -9,6 +9,8 @@ import {
   YT_STATE_BUFFERING,
   type YTPlayer,
 } from "@/lib/youtube-iframe-api";
+import { categoryThumbnail, videoThumbnail } from "@/lib/youtube-thumbs";
+import { createYouTubeMountPoint, forceIframeFillContainer } from "@/lib/player-engine";
 
 export type VideoCategory = {
   id: string;
@@ -96,6 +98,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
+  const iframeCleanupRef = useRef<(() => void) | null>(null);
+  const hasUnmutedRef = useRef(false);
   const selectedRef = useRef(selected);
   const folderIdRef = useRef(folderId);
   const categoryVideosRef = useRef<ApprovedVideo[]>([]);
@@ -179,7 +183,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
     let cancelled = false;
     loadYouTubeApi().then(() => {
       if (cancelled || !playerContainerRef.current || !window.YT) return;
-      playerRef.current = new window.YT.Player(playerContainerRef.current, {
+      const mountEl = createYouTubeMountPoint(playerContainerRef.current);
+      playerRef.current = new window.YT.Player(mountEl, {
         videoId: selected.videoId,
         width: "100%",
         height: "100%",
@@ -191,13 +196,25 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           fs: 1,
           playsinline: 1,
           autoplay: 1,
+          // Starts muted, unmuted below once playback actually starts — see
+          // lib/youtube-player-engine.ts's comment on the same pattern.
+          // Unmuted autoplay triggered from inside an async loadYouTubeApi()
+          // callback can fall outside the browser's "recent user gesture"
+          // window and get silently blocked, which makes YouTube fall back
+          // to its own non-custom embed UI instead of actually playing.
+          mute: 1,
         },
         events: {
           onStateChange: (event: { data: number }) => {
             if (event.data === 0) advanceToNext();
+            if (!hasUnmutedRef.current && (event.data === YT_STATE_PLAYING || event.data === YT_STATE_BUFFERING)) {
+              hasUnmutedRef.current = true;
+              playerRef.current?.unMute();
+            }
           },
         },
       });
+      iframeCleanupRef.current = forceIframeFillContainer(playerContainerRef.current);
     });
 
     return () => {
@@ -207,6 +224,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
 
   useEffect(() => {
     return () => {
+      iframeCleanupRef.current?.();
       playerRef.current?.destroy();
       playerRef.current = null;
     };
@@ -365,7 +383,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
         <PageHeading emoji="📺" title="Watch" subtitle="Pick a folder!" />
         <div className="grid grid-cols-2 landscape:grid-cols-3 gap-8 landscape:gap-4 w-full">
           {folders.map((f) => {
-            const coverVideoId = f.coverVideoId ?? f.categories[0]?.videos[0]?.videoId;
+            const coverThumbnail = f.categories[0] ? categoryThumbnail(f.categories[0], f.coverVideoId) : "";
             return (
               <button
                 key={f.id}
@@ -374,9 +392,9 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
                 className={`tap-pop relative flex items-end justify-center aspect-square landscape:aspect-video rounded-[2.5rem] text-white shadow-lg overflow-hidden ${tvFocusRing}`}
                 style={{ background: "linear-gradient(160deg, var(--watch), var(--watch-dark))" }}
               >
-                {coverVideoId && (
+                {coverThumbnail && (
                   <img
-                    src={`https://i.ytimg.com/vi/${coverVideoId}/hqdefault.jpg`}
+                    src={coverThumbnail}
                     alt=""
                     className="absolute inset-0 w-full h-full object-cover"
                   />
@@ -410,7 +428,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
         )}
         {categories.length > 1 &&
           categories.map((cat) => {
-            const coverVideoId = cat.videos[0]?.videoId;
+            const coverThumbnail = categoryThumbnail(cat);
             const isActive = cat.id === category?.id;
             return (
               <button
@@ -423,9 +441,9 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
                 style={isActive ? { background: "var(--watch)" } : undefined}
               >
                 <span className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-black/10 flex items-center justify-center text-lg">
-                  {coverVideoId ? (
+                  {coverThumbnail ? (
                     <img
-                      src={`https://i.ytimg.com/vi/${coverVideoId}/mqdefault.jpg`}
+                      src={coverThumbnail}
                       alt=""
                       className="w-full h-full object-cover"
                     />
@@ -449,7 +467,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           >
             <span className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/10">
               <img
-                src={`https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`}
+                src={videoThumbnail(video, "mqdefault")}
                 alt={video.title}
                 className="w-full h-full object-cover"
               />
