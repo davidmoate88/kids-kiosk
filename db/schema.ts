@@ -22,15 +22,13 @@ export const stremioMediaTypeEnum = pgEnum("stremio_media_type", ["movie", "seri
 
 // --- Tables ---
 
-// Parent login. Single-family app — in practice this table only ever has
-// one row (created once by scripts/seed.ts) — but a real table, not a
-// hardcoded check, is what lets auth.ts's Credentials authorize() match
-// asset-doc-register's pattern exactly.
-export const users = pgTable("users", {
+// Parent login. Gates /parents from the kids (and anyone else on the home
+// network) rather than from the internet — the app is LAN-only already, so
+// a single shared PIN is the right amount of friction, not a per-parent
+// account. Always exactly one row, created by scripts/seed.ts.
+export const parentPin = pgTable("parent_pin", {
   id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  name: text("name").notNull(),
+  pinHash: text("pin_hash").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

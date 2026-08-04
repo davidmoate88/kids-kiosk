@@ -1,4 +1,4 @@
-// One-time bootstrap: creates the first parent login and migrates today's
+// One-time bootstrap: creates the parent PIN and migrates today's
 // hand-edited lib/approved-videos.ts content into the database as
 // pre-approved, so cutting getWatchFolders() over to Postgres doesn't wipe
 // out everything that's already trusted. Safe to re-run — existing rows are
@@ -13,7 +13,7 @@ try {
 }
 
 import { getDb } from "@/db";
-import { approvedContent, catalogues, titles, users } from "@/db/schema";
+import { approvedContent, catalogues, parentPin, titles } from "@/db/schema";
 import {
   APPROVED_CHANNELS,
   APPROVED_PLAYLISTS,
@@ -22,24 +22,25 @@ import {
 } from "@/lib/approved-videos";
 import { syncCatalogue } from "@/lib/youtube-sync";
 
-async function seedUser() {
-  const email = process.env.SEED_PARENT_EMAIL;
-  const password = process.env.SEED_PARENT_PASSWORD;
-  if (!email || !password) {
-    throw new Error("SEED_PARENT_EMAIL and SEED_PARENT_PASSWORD must be set in .env.local");
+async function seedPin() {
+  const pin = process.env.SEED_PARENT_PIN;
+  if (!pin) {
+    throw new Error("SEED_PARENT_PIN must be set in .env.local");
+  }
+  if (!/^\d{4,8}$/.test(pin)) {
+    throw new Error("SEED_PARENT_PIN must be 4-8 digits.");
   }
 
   const db = getDb();
-  const normalizedEmail = email.toLowerCase().trim();
-  const [existing] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+  const [existing] = await db.select().from(parentPin).limit(1);
   if (existing) {
-    console.log(`Parent user ${normalizedEmail} already exists — leaving password as-is.`);
+    console.log("Parent PIN already set — leaving it as-is.");
     return;
   }
 
-  const passwordHash = await hash(password, 10);
-  await db.insert(users).values({ email: normalizedEmail, passwordHash, name: "Parent" });
-  console.log(`Created parent user ${normalizedEmail}.`);
+  const pinHash = await hash(pin, 10);
+  await db.insert(parentPin).values({ pinHash });
+  console.log("Parent PIN created.");
 }
 
 async function seedCatalogue(input: {
@@ -112,7 +113,7 @@ async function seedStandaloneVideo(video: { videoId: string; title: string }) {
 }
 
 async function main() {
-  await seedUser();
+  await seedPin();
 
   console.log("Seeding channels...");
   for (const channel of APPROVED_CHANNELS) {

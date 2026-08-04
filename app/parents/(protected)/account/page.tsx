@@ -6,7 +6,7 @@ export default function AccountPage() {
       <div>
         <h1 className="text-lg font-semibold">Account</h1>
         <p className="mt-1 text-sm" style={{ color: "var(--tv-text-muted)" }}>
-          Manage your parent login.
+          Manage the PIN that gates this dashboard.
         </p>
       </div>
       <AccountClient />

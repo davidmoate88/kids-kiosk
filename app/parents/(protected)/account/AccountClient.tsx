@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePassword } from "./actions";
+import { changePin } from "./actions";
 
 const fieldStyle = { background: "var(--tv-bg)", border: "1px solid var(--tv-divider)" } as const;
 
 export default function AccountClient() {
-  const [state, formAction, pending] = useActionState(changePassword, undefined);
+  const [state, formAction, pending] = useActionState(changePin, undefined);
 
   return (
     <form
@@ -14,13 +14,15 @@ export default function AccountClient() {
       className="flex max-w-sm flex-col gap-4 rounded-lg p-6"
       style={{ background: "var(--tv-surface)" }}
     >
-      <h2 className="text-sm font-semibold">Change password</h2>
+      <h2 className="text-sm font-semibold">Change PIN</h2>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Current password</span>
+        <span className="font-medium">Current PIN</span>
         <input
-          name="currentPassword"
+          name="currentPin"
           type="password"
+          inputMode="numeric"
+          pattern="\d{4,8}"
           required
           autoComplete="current-password"
           className="rounded-lg px-3 py-2 text-sm outline-none"
@@ -29,12 +31,15 @@ export default function AccountClient() {
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">New password</span>
+        <span className="font-medium">New PIN</span>
         <input
-          name="newPassword"
+          name="newPin"
           type="password"
+          inputMode="numeric"
+          pattern="\d{4,8}"
           required
-          minLength={8}
+          minLength={4}
+          maxLength={8}
           autoComplete="new-password"
           className="rounded-lg px-3 py-2 text-sm outline-none"
           style={fieldStyle}
@@ -42,12 +47,15 @@ export default function AccountClient() {
       </label>
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Confirm new password</span>
+        <span className="font-medium">Confirm new PIN</span>
         <input
-          name="confirmPassword"
+          name="confirmPin"
           type="password"
+          inputMode="numeric"
+          pattern="\d{4,8}"
           required
-          minLength={8}
+          minLength={4}
+          maxLength={8}
           autoComplete="new-password"
           className="rounded-lg px-3 py-2 text-sm outline-none"
           style={fieldStyle}
@@ -61,7 +69,7 @@ export default function AccountClient() {
       )}
       {state?.success && (
         <p className="text-sm" style={{ color: "#7affa0" }}>
-          Password updated.
+          PIN updated.
         </p>
       )}
 
@@ -71,7 +79,7 @@ export default function AccountClient() {
         className="self-start rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
         style={{ background: "var(--tv-accent-300)", color: "var(--tv-bg)" }}
       >
-        {pending ? "Updating…" : "Update password"}
+        {pending ? "Updating…" : "Update PIN"}
       </button>
     </form>
   );

@@ -17,32 +17,22 @@ export default function LoginPage() {
       >
         <h1 className="text-xl font-semibold">Kids Kiosk — Parents</h1>
         <p className="mt-1 text-sm" style={{ color: "var(--tv-text-muted)" }}>
-          Sign in to manage what&apos;s approved.
+          Enter the PIN to manage what&apos;s approved.
         </p>
 
         <form action={formAction} className="mt-6 flex flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium">Email</span>
+            <span className="font-medium">PIN</span>
             <input
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="rounded-lg px-3 py-2 text-sm outline-none"
-              style={{ background: "var(--tv-bg)", border: "1px solid var(--tv-divider)" }}
-            />
-          </label>
-
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium">Password</span>
-            <input
-              name="password"
+              name="pin"
               type="password"
+              inputMode="numeric"
+              pattern="\d{4,8}"
               required
               autoComplete="current-password"
-              placeholder="••••••••"
-              className="rounded-lg px-3 py-2 text-sm outline-none"
+              autoFocus
+              placeholder="••••"
+              className="rounded-lg px-3 py-2 text-lg tracking-[0.3em] outline-none"
               style={{ background: "var(--tv-bg)", border: "1px solid var(--tv-divider)" }}
             />
           </label>

@@ -4,50 +4,43 @@ import { compare, hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { parentPin } from "@/db/schema";
 
-export type ChangePasswordState = { error?: string; success?: boolean } | undefined;
+export type ChangePinState = { error?: string; success?: boolean } | undefined;
 
-export async function changePassword(
-  _prev: ChangePasswordState,
-  formData: FormData
-): Promise<ChangePasswordState> {
+export async function changePin(_prev: ChangePinState, formData: FormData): Promise<ChangePinState> {
   const session = await auth();
   if (!session?.user?.id) {
     return { error: "Not signed in." };
   }
 
-  const currentPassword = formData.get("currentPassword");
-  const newPassword = formData.get("newPassword");
-  const confirmPassword = formData.get("confirmPassword");
+  const currentPin = formData.get("currentPin");
+  const newPin = formData.get("newPin");
+  const confirmPin = formData.get("confirmPin");
 
-  if (
-    typeof currentPassword !== "string" ||
-    typeof newPassword !== "string" ||
-    typeof confirmPassword !== "string"
-  ) {
+  if (typeof currentPin !== "string" || typeof newPin !== "string" || typeof confirmPin !== "string") {
     return { error: "All fields are required." };
   }
-  if (newPassword.length < 8) {
-    return { error: "New password must be at least 8 characters." };
+  if (!/^\d{4,8}$/.test(newPin)) {
+    return { error: "New PIN must be 4-8 digits." };
   }
-  if (newPassword !== confirmPassword) {
-    return { error: "New passwords don't match." };
+  if (newPin !== confirmPin) {
+    return { error: "New PINs don't match." };
   }
 
   const db = getDb();
-  const [user] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-  if (!user) {
-    return { error: "Account not found." };
+  const [row] = await db.select().from(parentPin).where(eq(parentPin.id, session.user.id)).limit(1);
+  if (!row) {
+    return { error: "PIN not found." };
   }
 
-  const currentMatches = await compare(currentPassword, user.passwordHash);
+  const currentMatches = await compare(currentPin, row.pinHash);
   if (!currentMatches) {
-    return { error: "Current password is incorrect." };
+    return { error: "Current PIN is incorrect." };
   }
 
-  const passwordHash = await hash(newPassword, 10);
-  await db.update(users).set({ passwordHash }).where(eq(users.id, user.id));
+  const pinHash = await hash(newPin, 10);
+  await db.update(parentPin).set({ pinHash }).where(eq(parentPin.id, row.id));
 
   return { success: true };
 }
