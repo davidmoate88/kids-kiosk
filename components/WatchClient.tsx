@@ -41,7 +41,60 @@ declare global {
 type YTPlayer = {
   loadVideoById: (videoId: string) => void;
   destroy: () => void;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  getPlayerState: () => number;
 };
+
+const YT_STATE_PLAYING = 1;
+const YT_STATE_BUFFERING = 3;
+
+// Arrow keys have no built-in browser behavior for moving focus between
+// buttons (only Tab does that), so a TV remote's D-pad does nothing on a
+// touch-first grid of tiles unless we drive focus ourselves. This picks
+// the nearest focusable tile in the requested direction by comparing
+// bounding-box centers, so it works across any grid/column layout without
+// hardcoding breakpoints.
+function focusTvNeighbor(direction: "up" | "down" | "left" | "right") {
+  const active = document.activeElement as HTMLElement | null;
+  if (!active) return;
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-tv-focusable="true"]')
+  ).filter((el) => el !== active);
+  if (candidates.length === 0) return;
+
+  const a = active.getBoundingClientRect();
+  const ax = a.left + a.width / 2;
+  const ay = a.top + a.height / 2;
+
+  let best: HTMLElement | null = null;
+  let bestScore = Infinity;
+
+  for (const el of candidates) {
+    const r = el.getBoundingClientRect();
+    const dx = r.left + r.width / 2 - ax;
+    const dy = r.top + r.height / 2 - ay;
+
+    if (direction === "up" && dy >= -4) continue;
+    if (direction === "down" && dy <= 4) continue;
+    if (direction === "left" && dx >= -4) continue;
+    if (direction === "right" && dx <= 4) continue;
+
+    const primary = direction === "up" || direction === "down" ? Math.abs(dy) : Math.abs(dx);
+    const cross = direction === "up" || direction === "down" ? Math.abs(dx) : Math.abs(dy);
+    const score = primary + cross * 2;
+
+    if (score < bestScore) {
+      bestScore = score;
+      best = el;
+    }
+  }
+
+  best?.focus();
+}
+
+const tvFocusRing =
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent";
 
 let ytApiPromise: Promise<void> | null = null;
 function loadYouTubeApi(): Promise<void> {
@@ -164,7 +217,6 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           rel: 0,
           modestbranding: 1,
           iv_load_policy: 3,
-          disablekb: 1,
           fs: 1,
           playsinline: 1,
           autoplay: 1,
@@ -188,6 +240,79 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
       playerRef.current = null;
     };
   }, []);
+
+  function togglePlayPause() {
+    const player = playerRef.current;
+    if (!player) return;
+    const state = player.getPlayerState();
+    if (state === YT_STATE_PLAYING || state === YT_STATE_BUFFERING) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  }
+
+  // D-pad navigation between tiles on the folder/category/video browsing
+  // screens — see focusTvNeighbor for why this can't just rely on default
+  // browser key handling.
+  useEffect(() => {
+    if (!tvMode || selected) return;
+    function onKeyDown(e: KeyboardEvent) {
+      switch (e.key) {
+        case "ArrowUp":
+          e.preventDefault();
+          focusTvNeighbor("up");
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          focusTvNeighbor("down");
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          focusTvNeighbor("left");
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          focusTvNeighbor("right");
+          break;
+        default:
+          break;
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [tvMode, selected]);
+
+  // Nothing has focus by default on page load or after switching
+  // folder/category, so the first D-pad press would otherwise have no
+  // starting point to navigate from.
+  useEffect(() => {
+    if (!tvMode || selected) return;
+    const first = document.querySelector<HTMLElement>('[data-tv-focusable="true"]');
+    first?.focus();
+  }, [tvMode, selected, folderId, categoryId]);
+
+  // Play/Pause while a video is up: Enter/Space cover a focused on-screen
+  // control, and __tvRemotePlayPause is called directly by the native
+  // Android shell for the TV remote's hardware play/pause button (see
+  // kids-kiosk-tv's MainActivity — hardware media keys aren't reliably
+  // forwarded as DOM keydown events through WebView).
+  useEffect(() => {
+    if (!tvMode || !selected) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    const win = window as unknown as { __tvRemotePlayPause?: () => void };
+    win.__tvRemotePlayPause = togglePlayPause;
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      delete win.__tvRemotePlayPause;
+    };
+  }, [tvMode, selected]);
 
   if (folders.length === 0) {
     return (
@@ -240,7 +365,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           {shields}
           <button
             onClick={backToVideos}
-            className="tap-pop absolute top-4 right-4 rounded-2xl px-5 py-3 font-bold text-white bg-black/50 backdrop-blur"
+            data-tv-focusable="true"
+            className={`tap-pop absolute top-4 right-4 rounded-2xl px-5 py-3 font-bold text-white bg-black/50 backdrop-blur ${tvFocusRing}`}
           >
             ⬅️ Back
           </button>
@@ -273,7 +399,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
               <button
                 key={f.id}
                 onClick={() => pickFolder(f.id)}
-                className="tap-pop relative flex items-end justify-center aspect-square landscape:aspect-video rounded-[2.5rem] text-white shadow-lg overflow-hidden"
+                data-tv-focusable="true"
+                className={`tap-pop relative flex items-end justify-center aspect-square landscape:aspect-video rounded-[2.5rem] text-white shadow-lg overflow-hidden ${tvFocusRing}`}
                 style={{ background: "linear-gradient(160deg, var(--watch), var(--watch-dark))" }}
               >
                 {coverVideoId && (
@@ -304,7 +431,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
         {folders.length > 1 && (
           <button
             onClick={() => history.back()}
-            className="tap-pop px-5 py-3 rounded-2xl font-bold shadow bg-white text-foreground/70"
+            data-tv-focusable="true"
+            className={`tap-pop px-5 py-3 rounded-2xl font-bold shadow bg-white text-foreground/70 ${tvFocusRing}`}
           >
             📁 Folders
           </button>
@@ -317,7 +445,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
               <button
                 key={cat.id}
                 onClick={() => setCategoryId(cat.id)}
-                className={`tap-pop pl-2 pr-5 py-2 rounded-full font-bold shadow flex items-center gap-3 ${
+                data-tv-focusable="true"
+                className={`tap-pop pl-2 pr-5 py-2 rounded-full font-bold shadow flex items-center gap-3 ${tvFocusRing} ${
                   isActive ? "text-white" : "bg-white text-foreground/70"
                 }`}
                 style={isActive ? { background: "var(--watch)" } : undefined}
@@ -344,7 +473,8 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           <button
             key={video.id}
             onClick={() => playVideo(video)}
-            className="tap-pop flex flex-col items-center gap-2 landscape:gap-1 rounded-3xl p-3 landscape:p-2 shadow-lg bg-white"
+            data-tv-focusable="true"
+            className={`tap-pop flex flex-col items-center gap-2 landscape:gap-1 rounded-3xl p-3 landscape:p-2 shadow-lg bg-white ${tvFocusRing}`}
           >
             <span className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/10">
               <img
