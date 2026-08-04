@@ -37,6 +37,24 @@ export type SearchResultItem = {
   year?: string;
 };
 
+// The fixed UK/BBFC scale stremio-platform-catalogs filters against — kept
+// here too (not just trusted blindly from the /taste/filters response) so a
+// value can be validated before being sent back as a query param.
+export const STREMIO_AGE_RATINGS = ["U", "PG", "12", "15", "18"] as const;
+export type StremioAgeRating = (typeof STREMIO_AGE_RATINGS)[number];
+
+export type FilterOptions = {
+  genres: string[];
+  ageRatings: readonly string[];
+};
+
+export type SearchOrBrowseFilters = {
+  genre?: string;
+  /** Only titles at or under this rating; titles with no GB rating on file
+   *  are excluded when set (see stremio-platform-catalogs' tmdb.ts). */
+  maxRating?: StremioAgeRating;
+};
+
 interface ManifestCatalog {
   id: string;
   type: string;
@@ -63,10 +81,11 @@ export async function getCatalogRows(): Promise<CatalogRow[]> {
 export async function browseCatalogRow(
   catalogId: string,
   type: StremioMediaType,
-  opts: { genre?: string; skip?: number } = {}
+  opts: SearchOrBrowseFilters & { skip?: number } = {}
 ): Promise<CatalogItem[]> {
   const params = new URLSearchParams();
   if (opts.genre) params.set("genre", opts.genre);
+  if (opts.maxRating) params.set("maxRating", opts.maxRating);
   if (opts.skip) params.set("skip", String(opts.skip));
   const qs = params.toString();
 
@@ -88,15 +107,31 @@ interface SearchResponseItem {
   year?: string;
 }
 
-export async function searchCatalog(type: StremioMediaType, query: string): Promise<SearchResultItem[]> {
+export async function searchCatalog(
+  type: StremioMediaType,
+  query: string,
+  filters: SearchOrBrowseFilters = {}
+): Promise<SearchResultItem[]> {
   if (!query.trim()) return [];
-  const res = await fetch(
-    `${catalogBaseUrl()}/taste/search?type=${type}&q=${encodeURIComponent(query)}`,
-    { cache: "no-store" }
-  );
+  const params = new URLSearchParams({ type, q: query });
+  if (filters.genre) params.set("genre", filters.genre);
+  if (filters.maxRating) params.set("maxRating", filters.maxRating);
+
+  const res = await fetch(`${catalogBaseUrl()}/taste/search?${params}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   const results = (await res.json()) as SearchResponseItem[];
   return results
     .filter((r): r is SearchResponseItem & { imdbId: string } => Boolean(r.imdbId))
     .map((r) => ({ imdbId: r.imdbId, mediaType: r.type, name: r.title, posterUrl: r.poster, year: r.year }));
+}
+
+/** Genre + age-rating options for the search/browse filter dropdowns —
+ * genres are type-specific (movie vs series have different TMDB genre
+ * lists), age ratings are the fixed scale regardless of type. */
+export async function getFilterOptions(type: StremioMediaType): Promise<FilterOptions> {
+  const res = await fetch(`${catalogBaseUrl()}/taste/filters?type=${type}`, {
+    next: { revalidate: 24 * 60 * 60 },
+  });
+  if (!res.ok) throw new Error(`Filter options fetch failed: ${res.status}`);
+  return (await res.json()) as FilterOptions;
 }

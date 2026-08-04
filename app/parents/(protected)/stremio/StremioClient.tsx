@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import type { stremioTrustedRows } from "@/db/schema";
-import type { CatalogItem, CatalogRow, SearchResultItem, StremioMediaType } from "@/lib/stremio-catalog-client";
+import type {
+  CatalogItem,
+  CatalogRow,
+  FilterOptions,
+  SearchResultItem,
+  StremioAgeRating,
+  StremioMediaType,
+} from "@/lib/stremio-catalog-client";
 import {
   approveStremioTitle,
   browseStremioRow,
@@ -50,12 +57,64 @@ function ResultCard({ item, approved, onApprove }: { item: ResultItem; approved:
   );
 }
 
+// Shared by the search and browse forms — genres are type-specific (the
+// caller passes the options for whichever type is currently selected), age
+// ratings are the fixed U/PG/12/15/18 scale regardless of type. "Any rating"
+// means no filter; the addon excludes titles with no GB rating on file only
+// when a specific rating is actually selected.
+function FilterSelects({
+  options,
+  genre,
+  onGenreChange,
+  maxRating,
+  onMaxRatingChange,
+}: {
+  options: FilterOptions;
+  genre: string;
+  onGenreChange: (v: string) => void;
+  maxRating: string;
+  onMaxRatingChange: (v: string) => void;
+}) {
+  return (
+    <>
+      <select
+        value={genre}
+        onChange={(e) => onGenreChange(e.target.value)}
+        className="rounded-lg px-3 py-2 text-sm"
+        style={fieldStyle}
+      >
+        <option value="">Any genre</option>
+        {options.genres.map((g) => (
+          <option key={g} value={g}>
+            {g}
+          </option>
+        ))}
+      </select>
+      <select
+        value={maxRating}
+        onChange={(e) => onMaxRatingChange(e.target.value)}
+        className="rounded-lg px-3 py-2 text-sm"
+        style={fieldStyle}
+      >
+        <option value="">Any rating</option>
+        {options.ageRatings.map((r) => (
+          <option key={r} value={r}>
+            Up to {r}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+
 export default function StremioClient({
   catalogRows,
   trustedRows,
+  filterOptionsByType,
 }: {
   catalogRows: CatalogRow[];
   trustedRows: TrustedRow[];
+  filterOptionsByType: Record<StremioMediaType, FilterOptions>;
 }) {
   const [, startTransition] = useTransition();
   const [folder, setFolder] = useState("Shows");
@@ -71,15 +130,27 @@ export default function StremioClient({
   // --- Search ---
   const [searchType, setSearchType] = useState<StremioMediaType>("movie");
   const [query, setQuery] = useState("");
+  const [searchGenre, setSearchGenre] = useState("");
+  const [searchMaxRating, setSearchMaxRating] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [searching, setSearching] = useState(false);
+
+  function changeSearchType(type: StremioMediaType) {
+    setSearchType(type);
+    setSearchGenre(""); // genre lists differ by type — a stale selection could silently match nothing
+  }
 
   async function runSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
     setSearching(true);
     try {
-      setSearchResults(await searchStremio(searchType, query));
+      setSearchResults(
+        await searchStremio(searchType, query, {
+          genre: searchGenre || undefined,
+          maxRating: (searchMaxRating || undefined) as StremioAgeRating | undefined,
+        })
+      );
     } finally {
       setSearching(false);
     }
@@ -87,6 +158,8 @@ export default function StremioClient({
 
   // --- Browse ---
   const [browseRowId, setBrowseRowId] = useState(catalogRows[0]?.id ?? "");
+  const [browseGenre, setBrowseGenre] = useState("");
+  const [browseMaxRating, setBrowseMaxRating] = useState("");
   const [browseResults, setBrowseResults] = useState<CatalogItem[]>([]);
   const [browseSkip, setBrowseSkip] = useState(0);
   const [browsing, setBrowsing] = useState(false);
@@ -96,7 +169,12 @@ export default function StremioClient({
     if (!row) return;
     setBrowsing(true);
     try {
-      setBrowseResults(await browseStremioRow(rowId, row.type, skip));
+      setBrowseResults(
+        await browseStremioRow(rowId, row.type, skip, {
+          genre: browseGenre || undefined,
+          maxRating: (browseMaxRating || undefined) as StremioAgeRating | undefined,
+        })
+      );
       setBrowseSkip(skip);
       setBrowseRowId(rowId);
     } finally {
@@ -139,7 +217,7 @@ export default function StremioClient({
         <form onSubmit={runSearch} className="flex flex-wrap gap-3">
           <select
             value={searchType}
-            onChange={(e) => setSearchType(e.target.value as StremioMediaType)}
+            onChange={(e) => changeSearchType(e.target.value as StremioMediaType)}
             className="rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
           >
@@ -152,6 +230,13 @@ export default function StremioClient({
             placeholder="Search a title…"
             className="min-w-56 flex-1 rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
+          />
+          <FilterSelects
+            options={filterOptionsByType[searchType]}
+            genre={searchGenre}
+            onGenreChange={setSearchGenre}
+            maxRating={searchMaxRating}
+            onMaxRatingChange={setSearchMaxRating}
           />
           <button
             type="submit"
@@ -181,7 +266,12 @@ export default function StremioClient({
         <div className="flex flex-wrap gap-3">
           <select
             value={browseRowId}
-            onChange={(e) => runBrowse(e.target.value, 0)}
+            onChange={(e) => {
+              const nextType = catalogRows.find((r) => r.id === e.target.value)?.type;
+              const prevType = catalogRows.find((r) => r.id === browseRowId)?.type;
+              if (nextType !== prevType) setBrowseGenre("");
+              runBrowse(e.target.value, 0);
+            }}
             className="min-w-56 rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
           >
@@ -191,6 +281,13 @@ export default function StremioClient({
               </option>
             ))}
           </select>
+          <FilterSelects
+            options={filterOptionsByType[catalogRows.find((r) => r.id === browseRowId)?.type ?? "movie"]}
+            genre={browseGenre}
+            onGenreChange={setBrowseGenre}
+            maxRating={browseMaxRating}
+            onMaxRatingChange={setBrowseMaxRating}
+          />
           <button
             type="button"
             disabled={!browseRowId || browsing}

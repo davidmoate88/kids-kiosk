@@ -6,8 +6,11 @@ import { getDb } from "@/db";
 import { stremioTitles, stremioTrustedRows } from "@/db/schema";
 import {
   browseCatalogRow,
+  getFilterOptions,
   searchCatalog,
   type CatalogItem,
+  type FilterOptions,
+  type SearchOrBrowseFilters,
   type SearchResultItem,
   type StremioMediaType,
 } from "@/lib/stremio-catalog-client";
@@ -17,16 +20,25 @@ import { syncSeriesEpisodes, syncTrustedRowDiscovery } from "@/lib/stremio-sync"
 // code directly) can search/browse — kept here rather than a GET API route
 // since they're simple, single-purpose reads with no caching/URL semantics
 // worth a dedicated endpoint for.
-export async function searchStremio(type: StremioMediaType, query: string): Promise<SearchResultItem[]> {
-  return searchCatalog(type, query);
+export async function searchStremio(
+  type: StremioMediaType,
+  query: string,
+  filters: SearchOrBrowseFilters = {}
+): Promise<SearchResultItem[]> {
+  return searchCatalog(type, query, filters);
 }
 
 export async function browseStremioRow(
   catalogId: string,
   type: StremioMediaType,
-  skip: number
+  skip: number,
+  filters: SearchOrBrowseFilters = {}
 ): Promise<CatalogItem[]> {
-  return browseCatalogRow(catalogId, type, { skip });
+  return browseCatalogRow(catalogId, type, { ...filters, skip });
+}
+
+export async function getStremioFilterOptions(type: StremioMediaType): Promise<FilterOptions> {
+  return getFilterOptions(type);
 }
 
 // Approves a single title found via search or browse (curation modes a/b) —

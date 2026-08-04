@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { stremioTrustedRows } from "@/db/schema";
-import { getCatalogRows } from "@/lib/stremio-catalog-client";
+import { getCatalogRows, getFilterOptions, type FilterOptions } from "@/lib/stremio-catalog-client";
 import StremioClient from "./StremioClient";
 
 export default async function StremioPage() {
@@ -8,9 +8,21 @@ export default async function StremioPage() {
   const trustedRows = await db.select().from(stremioTrustedRows).orderBy(stremioTrustedRows.label);
 
   let catalogRows: Awaited<ReturnType<typeof getCatalogRows>> = [];
+  // Fetched for both types up front (cheap, 24h-cached in the addon) so
+  // switching the type dropdown client-side doesn't need a round-trip.
+  let filterOptionsByType: Record<"movie" | "series", FilterOptions> = {
+    movie: { genres: [], ageRatings: [] },
+    series: { genres: [], ageRatings: [] },
+  };
   let catalogError: string | null = null;
   try {
-    catalogRows = await getCatalogRows();
+    const [rows, movieFilters, seriesFilters] = await Promise.all([
+      getCatalogRows(),
+      getFilterOptions("movie"),
+      getFilterOptions("series"),
+    ]);
+    catalogRows = rows;
+    filterOptionsByType = { movie: movieFilters, series: seriesFilters };
   } catch (err) {
     catalogError = err instanceof Error ? err.message : String(err);
   }
@@ -31,7 +43,7 @@ export default async function StremioPage() {
           STREMIO_CATALOG_URL is set and the addon is running.
         </p>
       ) : (
-        <StremioClient catalogRows={catalogRows} trustedRows={trustedRows} />
+        <StremioClient catalogRows={catalogRows} trustedRows={trustedRows} filterOptionsByType={filterOptionsByType} />
       )}
     </div>
   );
