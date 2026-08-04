@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
 import type { ApprovedVideo } from "@/lib/approved-videos";
+import {
+  loadYouTubeApi,
+  YT_STATE_PLAYING,
+  YT_STATE_BUFFERING,
+  type YTPlayer,
+} from "@/lib/youtube-iframe-api";
 
 export type VideoCategory = {
   id: string;
@@ -30,24 +36,6 @@ function exitFullscreen() {
     document.exitFullscreen?.().catch(() => {});
   }
 }
-
-declare global {
-  interface Window {
-    YT?: { Player: new (el: HTMLElement, opts: Record<string, unknown>) => YTPlayer };
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-type YTPlayer = {
-  loadVideoById: (videoId: string) => void;
-  destroy: () => void;
-  playVideo: () => void;
-  pauseVideo: () => void;
-  getPlayerState: () => number;
-};
-
-const YT_STATE_PLAYING = 1;
-const YT_STATE_BUFFERING = 3;
 
 // Arrow keys have no built-in browser behavior for moving focus between
 // buttons (only Tab does that), so a TV remote's D-pad does nothing on a
@@ -95,23 +83,6 @@ function focusTvNeighbor(direction: "up" | "down" | "left" | "right") {
 
 const tvFocusRing =
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent";
-
-let ytApiPromise: Promise<void> | null = null;
-function loadYouTubeApi(): Promise<void> {
-  if (window.YT?.Player) return Promise.resolve();
-  if (ytApiPromise) return ytApiPromise;
-  ytApiPromise = new Promise((resolve) => {
-    const previous = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      previous?.();
-      resolve();
-    };
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(script);
-  });
-  return ytApiPromise;
-}
 
 export default function WatchClient({ folders, tvMode = false }: { folders: VideoFolder[]; tvMode?: boolean }) {
   const initialFolderId = folders.length === 1 ? folders[0].id : "";

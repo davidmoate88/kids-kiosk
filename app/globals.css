@@ -39,6 +39,144 @@
   --font-sans: var(--font-baloo);
 }
 
+/* Nocturne — the dark design system for /tv (and, later, /parents). Scoped
+   by the --tv-* prefix rather than a real dark-mode mechanism: the rest of
+   the kid-facing app keeps its bright theme above, and /tv's root element
+   applies these as its own background/text so nothing here needs to touch
+   body/html. Values ported from the design handoff's token sheet. */
+:root {
+  --tv-bg: #161826;
+  --tv-surface: #232532;
+  --tv-text: #e9e9ed;
+  --tv-text-muted: #c9c9d4;
+  --tv-text-muted-2: #a8a8b6;
+  --tv-text-muted-3: #8b8b99;
+  --tv-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  --tv-accent: #9184d9;
+  --tv-accent-100: #f5f4ff;
+  --tv-accent-200: #e7e5fe;
+  --tv-accent-300: #d2cefd;
+  --tv-accent-400: #b5abfc;
+  --tv-accent-500: #968ae0;
+  --tv-accent-600: #796cbf;
+  --tv-accent-700: #5d5294;
+  --tv-accent-800: #423a6a;
+  --tv-accent-900: #2b2741;
+
+  --tv-accent-2: #a7a1db;
+  --tv-accent-2-100: #f5f4ff;
+  --tv-accent-2-200: #e7e5fe;
+  --tv-accent-2-300: #d2cefd;
+  --tv-accent-2-400: #b5afe8;
+  --tv-accent-2-500: #9690c9;
+  --tv-accent-2-600: #7972a9;
+  --tv-accent-2-700: #5c5783;
+  --tv-accent-2-800: #423e5d;
+  --tv-accent-2-900: #2b293a;
+
+  --tv-neutral-100: #f3f5fe;
+  --tv-neutral-200: #e4e7f5;
+  --tv-neutral-300: #cfd3e5;
+  --tv-neutral-400: #b2b6ca;
+  --tv-neutral-500: #9397ab;
+  --tv-neutral-600: #75798c;
+  --tv-neutral-700: #595d6c;
+  --tv-neutral-800: #3f424d;
+  --tv-neutral-900: #292b31;
+
+  --tv-shadow-sm: 0 0 0 1px #3f424d;
+  --tv-shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --tv-shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+@theme inline {
+  --color-tv-bg: var(--tv-bg);
+  --color-tv-surface: var(--tv-surface);
+  --color-tv-text: var(--tv-text);
+  --color-tv-text-muted: var(--tv-text-muted);
+  --color-tv-text-muted-2: var(--tv-text-muted-2);
+  --color-tv-text-muted-3: var(--tv-text-muted-3);
+  --color-tv-divider: var(--tv-divider);
+  --color-tv-accent: var(--tv-accent);
+  --color-tv-accent-100: var(--tv-accent-100);
+  --color-tv-accent-200: var(--tv-accent-200);
+  --color-tv-accent-300: var(--tv-accent-300);
+  --color-tv-accent-400: var(--tv-accent-400);
+  --color-tv-accent-500: var(--tv-accent-500);
+  --color-tv-accent-600: var(--tv-accent-600);
+  --color-tv-accent-700: var(--tv-accent-700);
+  --color-tv-accent-800: var(--tv-accent-800);
+  --color-tv-accent-900: var(--tv-accent-900);
+  --color-tv-accent-2: var(--tv-accent-2);
+  --color-tv-accent-2-100: var(--tv-accent-2-100);
+  --color-tv-accent-2-200: var(--tv-accent-2-200);
+  --color-tv-accent-2-300: var(--tv-accent-2-300);
+  --color-tv-accent-2-400: var(--tv-accent-2-400);
+  --color-tv-accent-2-500: var(--tv-accent-2-500);
+  --color-tv-accent-2-600: var(--tv-accent-2-600);
+  --color-tv-accent-2-700: var(--tv-accent-2-700);
+  --color-tv-accent-2-800: var(--tv-accent-2-800);
+  --color-tv-accent-2-900: var(--tv-accent-2-900);
+  --color-tv-neutral-100: var(--tv-neutral-100);
+  --color-tv-neutral-200: var(--tv-neutral-200);
+  --color-tv-neutral-300: var(--tv-neutral-300);
+  --color-tv-neutral-400: var(--tv-neutral-400);
+  --color-tv-neutral-500: var(--tv-neutral-500);
+  --color-tv-neutral-600: var(--tv-neutral-600);
+  --color-tv-neutral-700: var(--tv-neutral-700);
+  --color-tv-neutral-800: var(--tv-neutral-800);
+  --color-tv-neutral-900: var(--tv-neutral-900);
+  --font-tv: var(--font-tv-inter);
+
+  --animate-tv-eq: tv-eq 1.2s ease-in-out infinite;
+  --animate-tv-drift: tv-drift 20s ease-in-out infinite alternate;
+  --animate-tv-sheen: tv-sheen 1.7s linear infinite;
+  --animate-tv-ring: tv-ring 2s ease-out infinite;
+}
+
+@keyframes tv-eq {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+@keyframes tv-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-3%, 2%) scale(1.05); }
+}
+@keyframes tv-sheen {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes tv-ring {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes tv-nudge-right {
+  50% { transform: translateX(6px); }
+}
+@keyframes tv-nudge-left {
+  50% { transform: translateX(-6px); }
+}
+.tv-nudge-right { animation: tv-nudge-right 120ms ease; }
+.tv-nudge-left { animation: tv-nudge-left 120ms ease; }
+
+/* Shared focus appearance for every /tv focusable element (§2.6): scale is
+   the primary signal (must read from three metres), the ring is secondary.
+   Never rely on :hover — :focus-visible only engages for keyboard/D-pad
+   focus, never for a touch tap or mouse click, so there's no separate
+   touch-vs-TV split to maintain. */
+.tv-focusable {
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.tv-focusable:focus-visible {
+  outline: none;
+  transform: scale(1.07) translateY(-6px);
+  box-shadow: 0 0 0 3px var(--tv-accent-300), var(--tv-shadow-lg);
+  position: relative;
+  z-index: 10;
+}
+
 html {
   color-scheme: light;
 }

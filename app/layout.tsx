@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Baloo_2 } from "next/font/google";
+import { Baloo_2, Inter } from "next/font/google";
 import "./globals.css";
 import { ProfileProvider } from "@/components/ProfileContext";
 import KioskShell from "@/components/KioskShell";
@@ -8,6 +8,13 @@ const baloo = Baloo_2({
   variable: "--font-baloo",
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
+});
+
+// Only used by /tv's Nocturne theme — the rest of the app stays on Baloo.
+const tvInter = Inter({
+  variable: "--font-tv-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${baloo.variable} h-full antialiased`}>
+    <html lang="en" className={`${baloo.variable} ${tvInter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <ProfileProvider>
           <KioskShell>{children}</KioskShell>
