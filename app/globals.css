@@ -130,7 +130,6 @@
   --font-tv: var(--font-tv-inter);
 
   --animate-tv-eq: tv-eq 1.2s ease-in-out infinite;
-  --animate-tv-drift: tv-drift 20s ease-in-out infinite alternate;
   --animate-tv-sheen: tv-sheen 1.7s linear infinite;
   --animate-tv-ring: tv-ring 2s ease-out infinite;
 }
@@ -138,10 +137,6 @@
 @keyframes tv-eq {
   0%, 100% { transform: scaleY(0.3); }
   50% { transform: scaleY(1); }
-}
-@keyframes tv-drift {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-3%, 2%) scale(1.05); }
 }
 @keyframes tv-sheen {
   0% { background-position: -200% 0; }

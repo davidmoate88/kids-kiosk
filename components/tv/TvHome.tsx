@@ -177,9 +177,15 @@ export default function TvHome({
       {/* Background: a soft blurred wash colored from the focused show's art,
           plus a faint dot texture. Solid-color transitions animate natively
           in CSS, which sidesteps needing to interpolate a whole gradient. */}
+      {/* No continuous animation here on purpose — confirmed on-device that
+          animating a large blur() (even translate-only, even with
+          will-change) is a severe, continuous jank source on this WebView
+          (74-88% janky frames from this element alone). A static blurred
+          wash that only transitions on focus change (the transition-colors
+          below) keeps the ambient-glow look without any per-frame cost. */}
       <div
         aria-hidden="true"
-        className="absolute -right-40 -top-40 h-[900px] w-[1200px] rounded-full opacity-70 blur-[160px] transition-colors duration-700 ease-out animate-tv-drift"
+        className="absolute -right-40 -top-40 h-[900px] w-[1200px] rounded-full opacity-70 blur-[160px] transition-colors duration-700 ease-out"
         style={{ backgroundColor: wash }}
       />
       <div
