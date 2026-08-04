@@ -10,6 +10,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // compatible with database sessions anyway, and JWT is all a
   // single-family app needs.
   session: { strategy: "jwt" },
+  // Auth.js rejects requests whose Host header it doesn't recognize, as a
+  // spoofing guard for multi-tenant hosting platforms. This app is either
+  // reached directly on the LAN by IP or (later) through a Cloudflare
+  // tunnel that terminates the connection itself — there's no untrusted
+  // proxy in front of it forging the header, so trusting it is safe here.
+  trustHost: true,
   pages: {
     signIn: "/parents/login",
   },
