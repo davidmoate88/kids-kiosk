@@ -7,6 +7,7 @@ const TABS = [
   { href: "/parents/sources", label: "Sources" },
   { href: "/parents/approve", label: "Approve titles" },
   { href: "/parents/waiting", label: "Waiting" },
+  { href: "/parents/account", label: "Account" },
 ];
 
 export default function ParentsNav() {
