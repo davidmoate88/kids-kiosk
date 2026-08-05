@@ -29,7 +29,17 @@ function resultKey(item: ResultItem) {
   return `${item.imdbId}:${item.mediaType}`;
 }
 
-function ResultCard({ item, approved, onApprove }: { item: ResultItem; approved: boolean; onApprove: () => void }) {
+function ResultCard({
+  item,
+  approved,
+  folder,
+  onApprove,
+}: {
+  item: ResultItem;
+  approved: boolean;
+  folder: string;
+  onApprove: () => void;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-lg p-3" style={{ background: "var(--tv-surface)" }}>
       {item.posterUrl ? (
@@ -44,15 +54,26 @@ function ResultCard({ item, approved, onApprove }: { item: ResultItem; approved:
           {item.mediaType}
         </div>
       </div>
-      <button
-        type="button"
-        disabled={approved}
-        onClick={onApprove}
-        className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-60"
-        style={{ background: "var(--tv-accent-300)", color: "var(--tv-bg)" }}
-      >
-        {approved ? "Approved" : "Approve"}
-      </button>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <button
+          type="button"
+          disabled={approved}
+          onClick={onApprove}
+          className="rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-60"
+          style={{ background: "var(--tv-accent-300)", color: "var(--tv-bg)" }}
+        >
+          {approved ? "Approved" : "Approve"}
+        </button>
+        {/* The folder field lives once at the top of the page and can easily
+            scroll out of view — this makes the actual destination visible
+            right where the decision to approve happens, not something you
+            have to scroll up and re-check. */}
+        {!approved && (
+          <span className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
+            → {folder || "no folder set"}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -119,9 +140,11 @@ export default function StremioClient({
   const [, startTransition] = useTransition();
   const [folder, setFolder] = useState("Shows");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
+  const [approvedCount, setApprovedCount] = useState(0);
 
   function approve(item: ResultItem) {
     setApprovedIds((prev) => new Set(prev).add(resultKey(item)));
+    setApprovedCount((c) => c + 1);
     startTransition(() => {
       approveStremioTitle({ ...item, folder });
     });
@@ -164,15 +187,20 @@ export default function StremioClient({
   const [browseSkip, setBrowseSkip] = useState(0);
   const [browsing, setBrowsing] = useState(false);
 
-  async function runBrowse(rowId: string, skip: number) {
+  // Overrides let a filter-change call this in the same tick it updates
+  // state — reading browseGenre/browseMaxRating from the closure would see
+  // the pre-update (stale) value, since setState hasn't applied yet.
+  async function runBrowse(rowId: string, skip: number, overrides?: { genre?: string; maxRating?: string }) {
     const row = catalogRows.find((r) => r.id === rowId);
     if (!row) return;
+    const genre = overrides?.genre ?? browseGenre;
+    const maxRating = overrides?.maxRating ?? browseMaxRating;
     setBrowsing(true);
     try {
       setBrowseResults(
         await browseStremioRow(rowId, row.type, skip, {
-          genre: browseGenre || undefined,
-          maxRating: (browseMaxRating || undefined) as StremioAgeRating | undefined,
+          genre: genre || undefined,
+          maxRating: (maxRating || undefined) as StremioAgeRating | undefined,
         })
       );
       setBrowseSkip(skip);
@@ -183,6 +211,7 @@ export default function StremioClient({
   }
 
   // --- Trust whole rows ---
+  const [rowFilter, setRowFilter] = useState("");
   const trustedByCatalogId = new Map(trustedRows.map((r) => [r.catalogId, r]));
 
   function toggleTrust(row: CatalogRow, trusted: TrustedRow | undefined) {
@@ -210,6 +239,11 @@ export default function StremioClient({
             ))}
           </datalist>
         </label>
+        {approvedCount > 0 && (
+          <span className="text-sm" style={{ color: "var(--tv-text-muted)" }}>
+            {approvedCount} approved this session
+          </span>
+        )}
       </div>
 
       <section className="flex flex-col gap-3">
@@ -254,6 +288,7 @@ export default function StremioClient({
                 key={resultKey(item)}
                 item={item}
                 approved={approvedIds.has(resultKey(item))}
+                folder={folder}
                 onApprove={() => approve(item)}
               />
             ))}
@@ -267,10 +302,18 @@ export default function StremioClient({
           <select
             value={browseRowId}
             onChange={(e) => {
-              const nextType = catalogRows.find((r) => r.id === e.target.value)?.type;
+              const rowId = e.target.value;
+              const nextType = catalogRows.find((r) => r.id === rowId)?.type;
               const prevType = catalogRows.find((r) => r.id === browseRowId)?.type;
-              if (nextType !== prevType) setBrowseGenre("");
-              runBrowse(e.target.value, 0);
+              // Reset AND pass as an override in the same call, rather than
+              // relying on the just-queued setBrowseGenre("") having landed
+              // by the time runBrowse reads state — it hasn't yet.
+              if (nextType !== prevType) {
+                setBrowseGenre("");
+                runBrowse(rowId, 0, { genre: "" });
+              } else {
+                runBrowse(rowId, 0);
+              }
             }}
             className="min-w-56 rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
@@ -284,9 +327,19 @@ export default function StremioClient({
           <FilterSelects
             options={filterOptionsByType[catalogRows.find((r) => r.id === browseRowId)?.type ?? "movie"]}
             genre={browseGenre}
-            onGenreChange={setBrowseGenre}
+            onGenreChange={(g) => {
+              setBrowseGenre(g);
+              // Live re-browse on filter change, matching row-select's own
+              // auto-run — previously only the row dropdown updated results
+              // immediately and a filter change silently did nothing until
+              // "Browse" was clicked again, which read as broken/unresponsive.
+              if (browseRowId) runBrowse(browseRowId, 0, { genre: g });
+            }}
             maxRating={browseMaxRating}
-            onMaxRatingChange={setBrowseMaxRating}
+            onMaxRatingChange={(r) => {
+              setBrowseMaxRating(r);
+              if (browseRowId) runBrowse(browseRowId, 0, { maxRating: r });
+            }}
           />
           <button
             type="button"
@@ -306,11 +359,12 @@ export default function StremioClient({
                   key={resultKey(item)}
                   item={item}
                   approved={approvedIds.has(resultKey(item))}
+                  folder={folder}
                   onApprove={() => approve(item)}
                 />
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 disabled={browseSkip === 0 || browsing}
@@ -329,6 +383,12 @@ export default function StremioClient({
               >
                 Next
               </button>
+              {/* Rows can be hundreds of titles (see the Trust section's own
+                  copy below) — Previous/Next with no sense of position was
+                  the single biggest "how far through this am I" gap. */}
+              <span className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
+                Showing {browseSkip + 1}–{browseSkip + browseResults.length}
+              </span>
             </div>
           </>
         )}
@@ -341,8 +401,17 @@ export default function StremioClient({
           per-title review. New titles show up after the nightly sync or &quot;Sync
           now&quot;, not immediately (a big row can be hundreds of titles).
         </p>
+        <input
+          value={rowFilter}
+          onChange={(e) => setRowFilter(e.target.value)}
+          placeholder="Filter rows by name…"
+          className="w-64 rounded-lg px-3 py-2 text-sm"
+          style={fieldStyle}
+        />
         <div className="flex flex-col gap-2">
-          {catalogRows.map((row) => {
+          {catalogRows
+            .filter((row) => row.name.toLowerCase().includes(rowFilter.toLowerCase()))
+            .map((row) => {
             const trusted = trustedByCatalogId.get(row.id);
             return (
               <div
