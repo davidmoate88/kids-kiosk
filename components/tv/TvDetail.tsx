@@ -149,7 +149,7 @@ export default function TvDetail({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="relative h-full w-full overflow-y-auto pb-16 pl-[180px] pt-16"
+      className="relative h-full w-full overflow-y-auto pb-16 pl-[420px] pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <button

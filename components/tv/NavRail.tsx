@@ -14,7 +14,11 @@ const ITEMS: { id: TvScreen; label: string; Icon: typeof HomeIcon }[] = [
 ];
 
 /**
- * Left nav rail — 96px collapsed, expands to 320px with labels on focus.
+ * Left nav rail — 96px collapsed, expands to 384px with labels (and larger
+ * icons/buttons, so the expanded state reads as a real menu, not just a
+ * sliver gaining text) on focus. Every screen's content starts at
+ * CONTENT_LEFT_OFFSET, comfortably clear of the full expanded width, so the
+ * rail never overlaps content regardless of collapsed/expanded state.
  * §2.1: Left from the leftmost element on any screen moves focus here;
  * Right returns focus to wherever it was on that screen (tracked via
  * lib/tv-focus's rememberFocus/recallFocus, keyed by the current screen id
@@ -52,13 +56,17 @@ export default function NavRail({
   }
 
   return (
+    // pr-3 matters even though items are left-aligned: an expanded button is
+    // w-full, so without right padding it touches the rail's own right edge
+    // exactly, leaving no room for the focus ring to extend outward before
+    // overflow-hidden (needed for the width-collapse transition) clips it.
     <div
       ref={railRef}
       data-tv-rail="true"
       onKeyDown={handleRailKeyDown}
-      className="group absolute inset-y-0 left-0 z-20 flex w-24 flex-col items-start gap-2 overflow-hidden py-8 pl-6 transition-[width] duration-200 focus-within:w-80"
+      className="group absolute inset-y-0 left-0 z-20 flex w-24 flex-col items-start gap-3 overflow-hidden py-8 pl-6 pr-3 transition-all duration-200 focus-within:w-96"
       style={{
-        background: "linear-gradient(to right, rgba(10,11,18,0.85), transparent)",
+        background: "linear-gradient(to right, rgba(10,11,18,0.92), transparent)",
       }}
     >
       <div
@@ -75,14 +83,14 @@ export default function NavRail({
           data-tv-focusable="true"
           onFocus={(e) => rememberFocus("rail", e.currentTarget)}
           onClick={() => onNavigate(id)}
-          className="tv-focusable flex h-11 w-11 shrink-0 items-center justify-center gap-3 rounded-xl group-focus-within:w-full group-focus-within:justify-start group-focus-within:px-3"
+          className="tv-focusable flex h-11 w-11 shrink-0 items-center justify-center gap-4 rounded-xl transition-all duration-200 group-focus-within:h-16 group-focus-within:w-full group-focus-within:justify-start group-focus-within:px-4"
           style={{
             color: active === id ? "var(--tv-text)" : "var(--tv-text-muted-3)",
             background: active === id ? "var(--tv-surface)" : "transparent",
           }}
         >
-          <Icon className="h-6 w-6 shrink-0" />
-          <span className="hidden whitespace-nowrap text-lg font-medium group-focus-within:inline">
+          <Icon className="h-6 w-6 shrink-0 transition-all duration-200 group-focus-within:h-8 group-focus-within:w-8" />
+          <span className="hidden whitespace-nowrap text-xl font-semibold group-focus-within:inline">
             {label}
           </span>
         </button>

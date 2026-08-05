@@ -38,7 +38,7 @@ export default function TvParentControls({ onGoToRail }: { onGoToRail: () => voi
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="h-full w-full overflow-y-auto pl-[180px] pr-16 pt-16"
+      className="h-full w-full overflow-y-auto pl-[420px] pr-16 pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <h1 className="font-medium" style={{ fontSize: 52 }}>

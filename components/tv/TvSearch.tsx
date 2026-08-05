@@ -132,7 +132,7 @@ export default function TvSearch({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="flex h-full w-full gap-16 overflow-hidden pl-[180px] pr-16 pt-16"
+      className="flex h-full w-full gap-16 overflow-hidden pl-[420px] pr-16 pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <div ref={leftColRef} className="flex w-[600px] shrink-0 flex-col">
@@ -274,8 +274,16 @@ export default function TvSearch({
             </div>
             <div>
               <p className="text-2xl font-medium">{focusedResult.label}</p>
-              <p className="mt-1 text-lg" style={{ color: "var(--tv-accent-2-300)" }}>
-                {focusedResult.videos.length} episode{focusedResult.videos.length === 1 ? "" : "s"}
+              <p className="mt-1 flex items-center gap-2 text-lg" style={{ color: "var(--tv-accent-2-300)" }}>
+                <span>
+                  {focusedResult.videos.length} episode{focusedResult.videos.length === 1 ? "" : "s"}
+                </span>
+                <span
+                  className="rounded-full px-2.5 py-0.5 text-sm"
+                  style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                >
+                  {focusedResult.videos[0]?.source === "stremio" ? "Stremio" : "YouTube"}
+                </span>
               </p>
               <p className="mt-2 max-w-[500px] text-base" style={{ color: "var(--tv-text-muted)" }}>
                 {focusedResult.videos[0]?.title}
@@ -313,6 +321,17 @@ export default function TvSearch({
                   <img src={categoryThumbnail(c)} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                {c.videos[0]?.source === "stremio" && (
+                  // Same disambiguation as Home rows — a search is exactly where a
+                  // YouTube-clips result and a Stremio-series result for the same
+                  // name are most likely to land side by side.
+                  <span
+                    className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium"
+                    style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                  >
+                    {c.videos.length > 1 ? "Series" : "Movie"}
+                  </span>
+                )}
                 <span className="absolute bottom-2 left-2 right-2 truncate text-sm font-medium" style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>
                   {c.label}
                 </span>

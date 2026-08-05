@@ -37,7 +37,19 @@ export default function TvHome({
   const firstTile = rows[0]?.tiles[0] ?? null;
   const [heroCategory, setHeroCategory] = useState<VideoCategory | null>(firstTile);
   const [previewing, setPreviewing] = useState<VideoCategory | null>(null);
-  const [wash, setWash] = useState(FALLBACK_WASH);
+  // Two-layer crossfade rather than transitioning backgroundColor directly:
+  // each layer gets blur-[160px] applied to itself individually (baked in at
+  // paint time, since its color never changes after mount), so the 700ms
+  // fade is a pure compositor opacity blend of two already-blurred textures
+  // — not a re-run of the blur filter every frame. Confirmed on-device via
+  // dumpsys gfxinfo that animating backgroundColor on a single blurred
+  // element (the original approach) forces exactly the same per-frame
+  // re-rasterization cost as the blur+scale bug this replaced (89% janky
+  // frames from a single isolated color transition).
+  const washIdRef = useRef(1);
+  const [washLayers, setWashLayers] = useState<{ id: number; color: string }[]>([
+    { id: 0, color: FALLBACK_WASH },
+  ]);
 
   const heroTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dwellTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,7 +80,11 @@ export default function TvHome({
     if (!heroCategory) return;
     let cancelled = false;
     averageColor(categoryThumbnail(heroCategory), FALLBACK_WASH).then((color) => {
-      if (!cancelled) setWash(color);
+      if (cancelled) return;
+      const id = washIdRef.current++;
+      // Keep only the incoming layer plus whichever one was already on top —
+      // the new one fades in over the old one, which just sits underneath.
+      setWashLayers((prev) => [...prev.slice(-1), { id, color }]);
     });
     return () => {
       cancelled = true;
@@ -175,22 +191,40 @@ export default function TvHome({
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       {/* Background: a soft blurred wash colored from the focused show's art,
-          plus a faint dot texture. Solid-color transitions animate natively
-          in CSS, which sidesteps needing to interpolate a whole gradient. */}
-      {/* No continuous animation here on purpose — confirmed on-device that
-          animating a large blur() (even translate-only, even with
-          will-change) is a severe, continuous jank source on this WebView
-          (74-88% janky frames from this element alone). A static blurred
-          wash that only transitions on focus change (the transition-colors
-          below) keeps the ambient-glow look without any per-frame cost. */}
+          plus a faint dot texture. No continuous animation here on purpose —
+          confirmed on-device that animating a large blur() (even
+          translate-only, even with will-change) is a severe, continuous jank
+          source on this WebView (74-88% janky frames from this element
+          alone). Each color change is rendered as its own fully-static,
+          independently-blurred layer that only fades in via opacity — blur
+          is computed once per layer at paint time, so the crossfade is a
+          compositor-only opacity blend, not a per-frame re-rasterization of
+          the blur (which is what transitioning backgroundColor on a single
+          blurred element still costs, even with the scale animation gone —
+          confirmed the same way, via dumpsys gfxinfo). */}
+      {washLayers.map((layer, i) => (
+        <div
+          key={layer.id}
+          aria-hidden="true"
+          className={
+            "absolute -right-40 -top-40 h-[900px] w-[1200px] rounded-full opacity-70 blur-[160px]" +
+            (i === washLayers.length - 1 && washLayers.length > 1 ? " animate-tv-wash-in" : "")
+          }
+          style={{ backgroundColor: layer.color }}
+        />
+      ))}
+      {/* fixed, not absolute: rootRef scrolls vertically (native focus-driven
+          scrollIntoView as row focus moves down), and an absolutely
+          positioned layer scrolls right along with it — its fixed 1080px
+          height would then scroll past the visible area, exposing bare
+          background below the fold. A transformed ancestor (TvApp's
+          scale(...) wrapper) becomes the containing block for `fixed`
+          descendants, so this still locks to the 1920x1080 virtual screen
+          rather than the true device viewport, but stays put regardless of
+          rootRef's own scroll position. */}
       <div
         aria-hidden="true"
-        className="absolute -right-40 -top-40 h-[900px] w-[1200px] rounded-full opacity-70 blur-[160px] transition-colors duration-700 ease-out"
-        style={{ backgroundColor: wash }}
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 opacity-50"
+        className="fixed inset-0 opacity-50"
         style={{
           backgroundImage: "radial-gradient(rgba(233,233,237,0.5) 1px, transparent 1px)",
           backgroundSize: "5px 5px",
@@ -202,39 +236,63 @@ export default function TvHome({
       )}
 
       {/* Hero */}
-      <div className="relative z-10 pl-[180px] pt-24" style={{ width: 760 }}>
-        {previewing && (
-          <div className="mb-4 flex items-center gap-3">
-            <span
-              className="inline-flex items-center rounded-full px-3 py-1 text-[19px] font-semibold uppercase"
-              style={{
-                letterSpacing: "0.14em",
-                color: "var(--tv-accent-300)",
-                background: "color-mix(in srgb, var(--tv-accent) 18%, transparent)",
-                border: "1px solid var(--tv-accent-500)",
-              }}
-            >
-              Preview playing
-            </span>
-            <span className="flex h-4 items-end gap-1" aria-hidden="true">
-              {[0, 1, 2, 3].map((i) => (
-                <span
-                  key={i}
-                  className="w-1 animate-tv-eq rounded-full"
-                  style={{
-                    height: "100%",
-                    background: "var(--tv-accent-300)",
-                    animationDelay: `${i * 120}ms`,
-                  }}
-                />
-              ))}
-            </span>
-          </div>
-        )}
+      <div className="relative z-10 pl-[420px] pt-24" style={{ width: 760 }}>
+        {/* Fixed-height slot regardless of previewing state — this row used
+            to only exist in the DOM when previewing was true, so the title
+            (and everything below it) shifted up ~56px every time a D-pad
+            press cancelled the preview, then back down 900ms later when the
+            next dwell kicked in. Reserving the space even when empty keeps
+            the title's position stable through that constant toggling. */}
+        <div className="mb-4 flex h-10 items-center gap-3">
+          {previewing && (
+            <>
+              <span
+                className="inline-flex items-center rounded-full px-3 py-1 text-[19px] font-semibold uppercase"
+                style={{
+                  letterSpacing: "0.14em",
+                  color: "var(--tv-accent-300)",
+                  background: "color-mix(in srgb, var(--tv-accent) 18%, transparent)",
+                  border: "1px solid var(--tv-accent-500)",
+                }}
+              >
+                Preview playing
+              </span>
+              <span className="flex h-4 items-end gap-1" aria-hidden="true">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className="w-1 animate-tv-eq rounded-full"
+                    style={{
+                      height: "100%",
+                      background: "var(--tv-accent-300)",
+                      animationDelay: `${i * 120}ms`,
+                    }}
+                  />
+                ))}
+              </span>
+            </>
+          )}
+        </div>
 
+        {/* line-clamp on both title and description: the rows section below
+            (§ "Rows") sits at a fixed top offset, not measured against the
+            hero's actual rendered height — a long category name wrapping to
+            3-4 lines at this font size pushed hero content down far enough
+            to collide with (render underneath/through) the rows section.
+            Capping both keeps hero height bounded and predictable instead of
+            fixing the deeper "rows should measure hero height" architecture
+            change that'd require. */}
         <h1
           className="font-medium"
-          style={{ fontSize: 96, lineHeight: 0.98, letterSpacing: "-0.03em" }}
+          style={{
+            fontSize: 72,
+            lineHeight: 0.98,
+            letterSpacing: "-0.03em",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
         >
           {heroCategory.label}
         </h1>
@@ -245,7 +303,13 @@ export default function TvHome({
 
         <p
           className="mt-3 max-w-[620px] text-[28px] leading-[1.4]"
-          style={{ color: "var(--tv-text-muted)" }}
+          style={{
+            color: "var(--tv-text-muted)",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
         >
           {heroCategory.videos[0]?.title ?? ""}
         </p>
@@ -257,14 +321,14 @@ export default function TvHome({
             data-tv-row="hero"
             onFocus={(e) => rememberFocus("screen:home", e.currentTarget)}
             onClick={() => onOpenDetail(heroCategory)}
-            className="tv-focusable rounded-xl text-[26px] font-medium"
+            className="tv-focusable whitespace-nowrap rounded-xl text-[26px] font-medium"
             style={{
               padding: "18px 34px",
               background: "var(--tv-accent-300)",
               color: "var(--tv-bg)",
             }}
           >
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 whitespace-nowrap">
               <PlayIcon className="h-6 w-6" /> Let&apos;s go!
             </span>
           </button>
@@ -272,7 +336,7 @@ export default function TvHome({
             data-tv-focusable="true"
             data-tv-row="hero"
             onClick={() => onOpenDetail(heroCategory)}
-            className="tv-focusable rounded-xl border text-[26px] font-medium"
+            className="tv-focusable whitespace-nowrap rounded-xl border text-[26px] font-medium"
             style={{ padding: "18px 34px", borderColor: "var(--tv-divider)", color: "var(--tv-text)" }}
           >
             All episodes
@@ -281,7 +345,7 @@ export default function TvHome({
       </div>
 
       {/* Rows */}
-      <div className="absolute left-[120px] flex flex-col gap-[26px]" style={{ top: 560, right: 0 }}>
+      <div className="absolute left-[420px] flex flex-col gap-[26px]" style={{ top: 560, right: 0 }}>
         {rows.map((row, rowIndex) => (
           <div key={row.id} className="relative">
             <h2 className="mb-2 text-lg font-semibold" style={{ color: "var(--tv-text)" }}>
@@ -321,6 +385,21 @@ export default function TvHome({
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    {tile.videos[0]?.source === "stremio" && (
+                      // Same title can exist as both a YouTube clips channel and a
+                      // real Stremio series/movie (e.g. "Bluey") — this is the only
+                      // visual differentiator at row-browsing level, since both
+                      // would otherwise show the same label. YouTube tiles stay
+                      // unbadged (the default/majority case) to avoid cluttering
+                      // every row with a label that's only useful when there's an
+                      // actual same-name collision to resolve.
+                      <span
+                        className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-sm font-medium"
+                        style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                      >
+                        {tile.videos.length > 1 ? "Series" : "Movie"}
+                      </span>
+                    )}
                     <span
                       className="absolute bottom-3 left-3 right-3 font-medium"
                       style={{ fontSize: 27, textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
@@ -389,8 +468,12 @@ function HeroDwellPreview({ videoId }: { videoId?: string }) {
       aria-hidden="true"
       className="pointer-events-none absolute right-0 top-0 h-[700px] w-[1180px] overflow-hidden"
       style={{
-        maskImage: "linear-gradient(to left, black 60%, transparent 100%)",
-        WebkitMaskImage: "linear-gradient(to left, black 60%, transparent 100%)",
+        // Widened from 60% so the fully-opaque region starts further right —
+        // hero text's box now extends further right too (cleared for the
+        // nav rail's larger expanded width), so it needs more safe overlap
+        // room before running into solid, non-faded video.
+        maskImage: "linear-gradient(to left, black 74%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(to left, black 74%, transparent 100%)",
       }}
     >
       <div ref={containerRef} className="h-full w-full scale-125 opacity-80" />

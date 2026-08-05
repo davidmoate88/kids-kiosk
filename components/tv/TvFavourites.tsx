@@ -42,7 +42,7 @@ export default function TvFavourites({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="h-full w-full overflow-y-auto pl-[180px] pr-16 pt-16"
+      className="h-full w-full overflow-y-auto pl-[420px] pr-16 pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <h1 className="font-medium" style={{ fontSize: 52 }}>
@@ -69,6 +69,14 @@ export default function TvFavourites({
                 <img src={categoryThumbnail(c)} alt="" className="absolute inset-0 h-full w-full object-cover" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+              {c.videos[0]?.source === "stremio" && (
+                <span
+                  className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-sm font-medium"
+                  style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                >
+                  {c.videos.length > 1 ? "Series" : "Movie"}
+                </span>
+              )}
               <HeartIcon filled className="absolute right-3 top-3 h-6 w-6" style={{ color: "var(--tv-accent-300)" }} />
               <span className="absolute bottom-3 left-3 right-3 text-lg font-medium" style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>
                 {c.label}
