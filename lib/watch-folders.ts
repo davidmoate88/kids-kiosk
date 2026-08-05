@@ -1,7 +1,16 @@
 import { eq } from "drizzle-orm";
 import type { VideoCategory, VideoFolder } from "@/components/WatchClient";
 import { getDb } from "@/db";
-import { approvedContent, catalogues, episodes, stremioEpisodes, stremioTitles, stremioTrustedRows, titles } from "@/db/schema";
+import {
+  approvedContent,
+  catalogues,
+  episodes,
+  stremioEpisodes,
+  stremioTitles,
+  stremioTrustedRows,
+  titles,
+  watchedContent,
+} from "@/db/schema";
 
 export type ApprovedVideo = {
   id: string;
@@ -18,6 +27,7 @@ export type ApprovedVideo = {
   mediaType?: "movie" | "series";
   season?: number;
   episode?: number;
+  watched?: boolean;
 };
 
 const FOLDER_EMOJI: Record<string, string> = {
@@ -68,6 +78,15 @@ async function getYouTubeCategories(): Promise<(VideoCategory & { folder: string
     episodesByTitle.set(ep.titleId, list);
   }
 
+  const watchedEpisodeIds = new Set(
+    (
+      await db
+        .select({ episodeId: watchedContent.episodeId })
+        .from(watchedContent)
+        .where(eq(watchedContent.source, "youtube"))
+    ).map((w) => w.episodeId)
+  );
+
   const categories: (VideoCategory & { folder: string })[] = [];
 
   for (const t of approved) {
@@ -92,6 +111,7 @@ async function getYouTubeCategories(): Promise<(VideoCategory & { folder: string
         videoId: e.externalId,
         title: e.name,
         source: "youtube" as const,
+        watched: watchedEpisodeIds.has(e.id),
       })),
       folder: t.folder ?? STANDALONE_FOLDER,
     });
@@ -115,6 +135,13 @@ async function getStremioCategories(): Promise<(VideoCategory & { folder: string
     episodesByTitle.set(ep.stremioTitleId, list);
   }
 
+  const watchedRows = await db
+    .select({ stremioTitleId: watchedContent.stremioTitleId, stremioEpisodeId: watchedContent.stremioEpisodeId })
+    .from(watchedContent)
+    .where(eq(watchedContent.source, "stremio"));
+  const watchedStremioTitleIds = new Set(watchedRows.map((w) => w.stremioTitleId));
+  const watchedStremioEpisodeIds = new Set(watchedRows.map((w) => w.stremioEpisodeId));
+
   const categories: (VideoCategory & { folder: string })[] = [];
 
   for (const t of approvedTitles) {
@@ -134,6 +161,7 @@ async function getStremioCategories(): Promise<(VideoCategory & { folder: string
             posterUrl: t.posterUrl ?? undefined,
             imdbId: t.imdbId,
             mediaType: "movie",
+            watched: watchedStremioTitleIds.has(t.id),
           },
         ],
         folder,
@@ -160,6 +188,7 @@ async function getStremioCategories(): Promise<(VideoCategory & { folder: string
         mediaType: "series" as const,
         season: e.season,
         episode: e.episode,
+        watched: watchedStremioEpisodeIds.has(e.id),
       })),
       folder,
     });

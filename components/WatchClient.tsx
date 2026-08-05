@@ -3,14 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
 import type { ApprovedVideo } from "@/lib/watch-folders";
-import {
-  loadYouTubeApi,
-  YT_STATE_PLAYING,
-  YT_STATE_BUFFERING,
-  type YTPlayer,
-} from "@/lib/youtube-iframe-api";
+import type { PlaybackSource, PlayerHandle } from "@/lib/player-engine";
+import { youtubePlayerEngine } from "@/lib/youtube-player-engine";
+import { html5PlayerEngine } from "@/lib/html5-player-engine";
 import { categoryThumbnail, videoThumbnail } from "@/lib/youtube-thumbs";
-import { createYouTubeMountPoint, forceIframeFillContainer } from "@/lib/player-engine";
+import { markWatched } from "@/lib/watched";
 
 export type VideoCategory = {
   id: string;
@@ -96,10 +93,11 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   const categories = folder?.categories ?? [];
   const category = categories.find((c) => c.id === categoryId) ?? categories[0];
 
+  const [streamError, setStreamError] = useState(false);
+  const [resolving, setResolving] = useState(false);
+
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<YTPlayer | null>(null);
-  const iframeCleanupRef = useRef<(() => void) | null>(null);
-  const hasUnmutedRef = useRef(false);
+  const playerRef = useRef<PlayerHandle | null>(null);
   const selectedRef = useRef(selected);
   const folderIdRef = useRef(folderId);
   const categoryVideosRef = useRef<ApprovedVideo[]>([]);
@@ -172,73 +170,63 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
     setSelected(videos[idx === -1 ? 0 : (idx + 1) % videos.length]);
   }
 
+  // Engine picked by video.source (see lib/player-engine.ts) — youtubePlayerEngine
+  // for a YouTube embed, html5PlayerEngine (<video>, hls.js for .m3u8) for a
+  // Stremio stream resolved server-side via AIOStreams. nativeControls: true
+  // because, unlike TvPlayer's fully custom D-pad chrome, this screen has no
+  // play/pause/seek UI of its own — kids interact via the browser's/YouTube's
+  // own native controls, same as this file's previous raw YT.Player did.
   useEffect(() => {
     if (!selected || !playerContainerRef.current) return;
+    setStreamError(false);
+    setResolving(selected.source === "stremio");
 
-    if (playerRef.current) {
-      playerRef.current.loadVideoById(selected.videoId);
-      return;
-    }
+    const engine = selected.source === "youtube" ? youtubePlayerEngine : html5PlayerEngine;
+    const source: PlaybackSource =
+      selected.source === "youtube"
+        ? { source: "youtube", videoId: selected.videoId }
+        : {
+            source: "stremio",
+            imdbId: selected.imdbId!,
+            mediaType: selected.mediaType!,
+            season: selected.season,
+            episode: selected.episode,
+          };
 
-    let cancelled = false;
-    loadYouTubeApi().then(() => {
-      if (cancelled || !playerContainerRef.current || !window.YT) return;
-      const mountEl = createYouTubeMountPoint(playerContainerRef.current);
-      playerRef.current = new window.YT.Player(mountEl, {
-        videoId: selected.videoId,
-        width: "100%",
-        height: "100%",
-        host: "https://www.youtube-nocookie.com",
-        playerVars: {
-          rel: 0,
-          modestbranding: 1,
-          iv_load_policy: 3,
-          fs: 1,
-          playsinline: 1,
-          autoplay: 1,
-          // Starts muted, unmuted below once playback actually starts — see
-          // lib/youtube-player-engine.ts's comment on the same pattern.
-          // Unmuted autoplay triggered from inside an async loadYouTubeApi()
-          // callback can fall outside the browser's "recent user gesture"
-          // window and get silently blocked, which makes YouTube fall back
-          // to its own non-custom embed UI instead of actually playing.
-          mute: 1,
+    playerRef.current = engine.mount(
+      playerContainerRef.current,
+      source,
+      {
+        onStateChange: (state) => setResolving(state === "resolving"),
+        onEnded: () => {
+          // selectedRef, not the closed-over `selected`: same reasoning as
+          // advanceToNext() below — this callback fires from outside React's
+          // render cycle (a DOM event / YouTube postMessage), not from a
+          // reused player instance (unlike the old raw-player code, this
+          // effect fully remounts per video, matching TvPlayer.tsx).
+          if (selectedRef.current) {
+            markWatched(selectedRef.current.source, selectedRef.current.id, selectedRef.current.mediaType);
+          }
+          advanceToNext();
         },
-        events: {
-          onStateChange: (event: { data: number }) => {
-            if (event.data === 0) advanceToNext();
-            if (!hasUnmutedRef.current && (event.data === YT_STATE_PLAYING || event.data === YT_STATE_BUFFERING)) {
-              hasUnmutedRef.current = true;
-              playerRef.current?.unMute();
-            }
-          },
-        },
-      });
-      iframeCleanupRef.current = forceIframeFillContainer(playerContainerRef.current);
-    });
+        onError: () => setStreamError(true),
+      },
+      { nativeControls: true }
+    );
 
     return () => {
-      cancelled = true;
-    };
-  }, [selected?.videoId]);
-
-  useEffect(() => {
-    return () => {
-      iframeCleanupRef.current?.();
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.videoId]);
 
   function togglePlayPause() {
     const player = playerRef.current;
     if (!player) return;
     const state = player.getPlayerState();
-    if (state === YT_STATE_PLAYING || state === YT_STATE_BUFFERING) {
-      player.pauseVideo();
-    } else {
-      player.playVideo();
-    }
+    if (state === "playing" || state === "buffering") player.pauseVideo();
+    else player.playVideo();
   }
 
   // D-pad navigation between tiles on the folder/category/video browsing
@@ -329,7 +317,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   }
 
   if (selected) {
-    const shields = (
+    const shields = selected.source === "youtube" && (
       <>
         {/*
           YouTube's embed always overlays two clickable links that open
@@ -347,11 +335,24 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
 
     const player = <div ref={playerContainerRef} className="absolute inset-0 w-full h-full" />;
 
+    // Same edge states as TvPlayer.tsx (resolving = AIOStreams/debrid can take
+    // several seconds to tens of seconds; error = nothing playable was found,
+    // or the browser couldn't decode what was found), styled with this file's
+    // own emoji-based language rather than the TV redesign's --tv-* tokens.
+    const edgeState = (resolving || streamError) && (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-white bg-black">
+        <span className="text-5xl">{streamError ? "😴" : "🍿"}</span>
+        <p className="text-lg font-extrabold">{streamError ? "This one's having a nap" : "Finding your show…"}</p>
+        {streamError && <p className="text-sm text-white/70">Ask a grown-up for help.</p>}
+      </div>
+    );
+
     if (tvMode) {
       return (
         <div className="fixed inset-0 w-screen h-screen bg-black">
           {player}
           {shields}
+          {edgeState}
           <button
             onClick={backToVideos}
             data-tv-focusable="true"
@@ -369,6 +370,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
         <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-xl bg-black">
           {player}
           {shields}
+          {edgeState}
         </div>
         <BigButton onClick={backToVideos} color="var(--watch)" colorDark="var(--watch-dark)">
           Back to Videos

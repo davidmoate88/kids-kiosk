@@ -38,8 +38,17 @@ export interface MountCallbacks {
   onError: () => void;
 }
 
+export interface MountOptions {
+  // TvPlayer draws its own custom play/pause/seek chrome and needs the
+  // browser's/YouTube's native controls hidden so they don't double up.
+  // WatchClient has no custom chrome of its own — kids interact via touch —
+  // so it needs the opposite. Per-caller, not per-source-type, which is why
+  // this lives on mount() rather than on PlaybackSource.
+  nativeControls?: boolean;
+}
+
 export interface PlayerEngine {
-  mount(container: HTMLElement, video: PlaybackSource, callbacks: MountCallbacks): PlayerHandle;
+  mount(container: HTMLElement, video: PlaybackSource, callbacks: MountCallbacks, options?: MountOptions): PlayerHandle;
 }
 
 /**

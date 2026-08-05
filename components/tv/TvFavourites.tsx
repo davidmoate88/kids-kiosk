@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
 import { categoryThumbnail } from "@/lib/youtube-thumbs";
 import { focusNearest, rememberFocus } from "@/lib/tv-focus";
-import { HeartIcon } from "./icons";
+import { HeartIcon, CheckIcon } from "./icons";
 
 export default function TvFavourites({
   folders,
@@ -42,7 +42,7 @@ export default function TvFavourites({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="h-full w-full overflow-y-auto pl-[420px] pr-16 pt-16"
+      className="tv-screen-root h-full w-full overflow-y-auto pr-16 pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <h1 className="font-medium" style={{ fontSize: 52 }}>
@@ -75,6 +75,18 @@ export default function TvFavourites({
                   style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
                 >
                   {c.videos.length > 1 ? "Series" : "Movie"}
+                </span>
+              )}
+              {c.videos.length > 0 && c.videos.every((v) => v.watched) && (
+                // Left of the heart icon, not near the bottom title — same
+                // reasoning as Home's tiles (titles here can wrap to 2
+                // lines and reach close to the tile's full width).
+                <span
+                  className="absolute right-11 top-3 flex h-7 w-7 items-center justify-center rounded-full"
+                  style={{ background: "var(--tv-accent-300)" }}
+                  aria-label="Watched"
+                >
+                  <CheckIcon className="h-3.5 w-3.5" style={{ color: "var(--tv-bg)" }} />
                 </span>
               )}
               <HeartIcon filled className="absolute right-3 top-3 h-6 w-6" style={{ color: "var(--tv-accent-300)" }} />

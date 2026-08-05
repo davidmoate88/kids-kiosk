@@ -5,7 +5,7 @@ import { stremioEpisodes, stremioTitles, stremioTrustedRows } from "@/db/schema"
 import { browseCatalogRow, type StremioMediaType } from "@/lib/stremio-catalog-client";
 import { getSeriesMeta, mapWithConcurrencyLimit } from "@/lib/cinemeta";
 
-const DISCOVERY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // weekly — see the Phase 3 plan's accepted v1 trade-off
+const DISCOVERY_INTERVAL_MS = 24 * 60 * 60 * 1000; // nightly, same as episode-list refresh — v1.1: watch /var/log/kids-kiosk-sync.log on the LXC for a few nights after shipping to confirm the 2-core/2GB container keeps up with full-pagination-walk frequency going up 7x
 const MAX_DISCOVERY_PAGES = 15; // ~300 titles per row per sync
 const PAGE_SIZE = 20; // matches stremio-platform-catalogs' own fixed page size
 

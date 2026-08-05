@@ -45,6 +45,14 @@ already uses.
   `http://localhost/api/cron/sync` with the `x-cron-secret` header (value
   in `.env.local`, same file as everything else). Logs to
   `/var/log/kids-kiosk-sync.log`.
+- **Nightly backup** (v1.1): `scripts/backup-db.sh` — reads `DATABASE_URL`
+  from `.env.local`, `pg_dump`s to `/var/backups/kids-kiosk/`, keeps the
+  last 30 days. Verified locally: dump restores cleanly into a scratch
+  database with matching row counts. Install via root's crontab:
+  `0 4 * * * /opt/kids-kiosk/scripts/backup-db.sh >>
+  /var/log/kids-kiosk-backup.log 2>&1`. No backup convention existed
+  anywhere in the homelab before this — see the "Known gaps" note below,
+  now addressed.
 
 ## Updating
 
@@ -96,10 +104,10 @@ PGPASSWORD=<see .env.local> psql -h localhost -U kids_kiosk -d kids_kiosk
   just presses play), so making them internet-reachable is a real,
   separate decision from just "get it hosted," not an oversight.
 - **No firewall rule reviewed** — reachable from anywhere on the LAN.
-- **No backup of the database** — worth a cron'd `pg_dump` somewhere if
-  the approved-content list becomes something you'd mind losing (the
-  underlying YouTube data can always be re-synced, but a parent's curation
-  choices — what's approved, what folder, auto-approve settings — can't).
+- ~~No backup of the database~~ — addressed in v1.1, see "Nightly backup"
+  above. Still local-to-the-container only (no off-container replication) —
+  a real gap if the container's disk itself fails, just no longer "nothing
+  at all."
 - **Single instance, no monitoring/alerting** beyond systemd's own restart
   behaviour.
 

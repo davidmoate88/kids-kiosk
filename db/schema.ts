@@ -20,6 +20,8 @@ export const queueStateEnum = pgEnum("queue_state", ["pending", "approved", "ski
 
 export const stremioMediaTypeEnum = pgEnum("stremio_media_type", ["movie", "series"]);
 
+export const watchSourceEnum = pgEnum("watch_source", ["youtube", "stremio"]);
+
 // --- Tables ---
 
 // Parent login. Gates /parents from the kids (and anyone else on the home
@@ -161,6 +163,32 @@ export const stremioEpisodes = pgTable("stremio_episodes", {
   publishedAt: timestamp("published_at", { withTimezone: true }),
 }, (table) => [
   uniqueIndex("stremio_episodes_title_season_episode_idx").on(table.stremioTitleId, table.season, table.episode),
+]);
+
+// A video watched to completion — surfaced as a small checkmark badge on
+// tiles/episode rows (v1.1). Global/device-wide, not per-profile: no
+// profile plumbing exists anywhere in the watch path today (TvApp.tsx,
+// TvPlayer.tsx, WatchClient.tsx don't consume ProfileContext at all), so
+// this doesn't try to invent per-kid tracking the rest of the app doesn't
+// support yet. Exactly one of the three FKs is set per row, matching
+// `source` and — for Stremio — the same movie/series asymmetry
+// stremioTitles.scope already models (a movie has no episode row, so it's
+// marked via stremioTitleId directly; a series episode via
+// stremioEpisodeId). Each FK has its own unique index rather than one
+// combined constraint — Postgres doesn't treat NULL as equal to NULL in a
+// unique index, so this correctly prevents double-marking the same episode
+// while never conflicting across the two always-null columns on any row.
+export const watchedContent = pgTable("watched_content", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  source: watchSourceEnum("source").notNull(),
+  episodeId: uuid("episode_id").references(() => episodes.id, { onDelete: "cascade" }),
+  stremioEpisodeId: uuid("stremio_episode_id").references(() => stremioEpisodes.id, { onDelete: "cascade" }),
+  stremioTitleId: uuid("stremio_title_id").references(() => stremioTitles.id, { onDelete: "cascade" }),
+  watchedAt: timestamp("watched_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("watched_content_episode_idx").on(table.episodeId),
+  uniqueIndex("watched_content_stremio_episode_idx").on(table.stremioEpisodeId),
+  uniqueIndex("watched_content_stremio_title_idx").on(table.stremioTitleId),
 ]);
 
 // --- Relations ---

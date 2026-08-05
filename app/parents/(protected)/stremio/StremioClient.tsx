@@ -17,6 +17,7 @@ import {
   syncTrustedRowNow,
   trustCatalogRow,
   untrustCatalogRow,
+  updateTrustedRowFolder,
 } from "./actions";
 
 type TrustedRow = typeof stremioTrustedRows.$inferSelect;
@@ -433,6 +434,28 @@ export default function StremioClient({
                     </div>
                   )}
                 </div>
+                {trusted && (
+                  // Parity with YouTube catalogues (sources/SourcesClient.tsx)
+                  // — same edit-on-blur pattern, added in v1.1. Only shown for
+                  // already-trusted rows, since folder is only meaningful once
+                  // a row has one (set at trust time).
+                  <label className="flex items-center gap-2 text-sm">
+                    Folder
+                    <input
+                      defaultValue={trusted.folder}
+                      list="stremio-folder-suggestions"
+                      className="w-40 rounded-lg px-2 py-1 text-sm"
+                      style={fieldStyle}
+                      onBlur={(e) => {
+                        const next = e.target.value.trim();
+                        if (!next || next === trusted.folder) return;
+                        startTransition(() => {
+                          updateTrustedRowFolder(trusted.id, next);
+                        });
+                      }}
+                    />
+                  </label>
+                )}
                 {trusted && (
                   <button
                     type="button"

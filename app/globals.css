@@ -183,6 +183,32 @@
   z-index: 10;
 }
 
+/* Content offset for every /tv screen: rests clear of the collapsed 96px
+   nav rail, expands to clear its full 384px expanded width only while the
+   rail is actually focused (NavRail.tsx marks its root `peer` for this).
+   Hand-written rather than Tailwind's peer-focus-within: JIT class — that
+   didn't reliably compile for this combination (confirmed via devtools: no
+   matching rule was ever generated), so this sidesteps the JIT entirely.
+   .tv-screen-root is for screens whose own root is the rail's direct
+   sibling (Search/Detail/Favourites/Grown-ups); .tv-home-root is TvHome's
+   variant, which sets the custom property instead of padding-left directly
+   because its hero/rows are nested *inside* that root, not siblings of the
+   rail themselves — peer-focus-within's sibling combinator can't reach a
+   sibling's descendants, only the sibling element itself. */
+.tv-screen-root {
+  padding-left: 200px;
+  transition: padding-left 200ms;
+}
+.peer:focus-within ~ .tv-screen-root {
+  padding-left: 420px;
+}
+.tv-home-root {
+  --tv-content-offset: 200px;
+}
+.peer:focus-within ~ .tv-home-root {
+  --tv-content-offset: 420px;
+}
+
 html {
   color-scheme: light;
 }

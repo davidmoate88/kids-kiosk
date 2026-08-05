@@ -16,9 +16,15 @@ const ITEMS: { id: TvScreen; label: string; Icon: typeof HomeIcon }[] = [
 /**
  * Left nav rail — 96px collapsed, expands to 384px with labels (and larger
  * icons/buttons, so the expanded state reads as a real menu, not just a
- * sliver gaining text) on focus. Every screen's content starts at
- * CONTENT_LEFT_OFFSET, comfortably clear of the full expanded width, so the
- * rail never overlaps content regardless of collapsed/expanded state.
+ * sliver gaining text) on focus. Every screen's content rests at a smaller
+ * offset (clear of the 96px collapsed rail) and shifts out to clear the full
+ * 384px expanded width only while the rail is actually focused, via
+ * `peer-focus-within:` on each screen's root (this div is both `group`, for
+ * its own internal buttons, and `peer`, for those screen roots). Has to be
+ * `peer`, not `group`: the rail and the active screen are siblings under a
+ * shared parent in TvApp.tsx, not ancestor/descendant, and a `group` wrapping
+ * both would make `:focus-within` true for literally any focused row tile —
+ * not just the rail — since it doesn't care which descendant has focus.
  * §2.1: Left from the leftmost element on any screen moves focus here;
  * Right returns focus to wherever it was on that screen (tracked via
  * lib/tv-focus's rememberFocus/recallFocus, keyed by the current screen id
@@ -64,7 +70,7 @@ export default function NavRail({
       ref={railRef}
       data-tv-rail="true"
       onKeyDown={handleRailKeyDown}
-      className="group absolute inset-y-0 left-0 z-20 flex w-24 flex-col items-start gap-3 overflow-hidden py-8 pl-6 pr-3 transition-all duration-200 focus-within:w-96"
+      className="group peer absolute inset-y-0 left-0 z-20 flex w-24 flex-col items-start gap-3 overflow-hidden py-8 pl-6 pr-3 transition-all duration-200 focus-within:w-96"
       style={{
         background: "linear-gradient(to right, rgba(10,11,18,0.92), transparent)",
       }}

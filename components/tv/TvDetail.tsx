@@ -5,7 +5,7 @@ import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
 import type { ApprovedVideo } from "@/lib/watch-folders";
 import { categoryThumbnail, videoThumbnail } from "@/lib/youtube-thumbs";
 import { focusNearest, focusPreservingIndex, rememberFocus, recallFocus } from "@/lib/tv-focus";
-import { ChevronLeftIcon, PlayIcon, HeartIcon } from "./icons";
+import { ChevronLeftIcon, PlayIcon, HeartIcon, CheckIcon } from "./icons";
 
 const EPISODES_SHOWN_INITIALLY = 3;
 
@@ -149,7 +149,7 @@ export default function TvDetail({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="relative h-full w-full overflow-y-auto pb-16 pl-[420px] pt-16"
+      className="tv-screen-root relative h-full w-full overflow-y-auto pb-16 pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <button
@@ -227,6 +227,15 @@ export default function TvDetail({
               <span className="relative h-24 w-[172px] shrink-0 overflow-hidden rounded-xl bg-black/30">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={videoThumbnail(video)} alt="" className="h-full w-full object-cover" />
+                {video.watched && (
+                  <span
+                    className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full"
+                    style={{ background: "var(--tv-accent-300)" }}
+                    aria-label="Watched"
+                  >
+                    <CheckIcon className="h-3.5 w-3.5" style={{ color: "var(--tv-bg)" }} />
+                  </span>
+                )}
               </span>
               <span className="flex flex-col gap-1">
                 <span className="text-[26px] font-medium">{video.title}</span>
@@ -270,6 +279,15 @@ export default function TvDetail({
                     <img src={categoryThumbnail(c)} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  {c.videos.length > 0 && c.videos.every((v) => v.watched) && (
+                    <span
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full"
+                      style={{ background: "var(--tv-accent-300)" }}
+                      aria-label="Watched"
+                    >
+                      <CheckIcon className="h-4 w-4" style={{ color: "var(--tv-bg)" }} />
+                    </span>
+                  )}
                   <span className="absolute bottom-2 left-2 right-2 text-lg font-medium" style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>
                     {c.label}
                   </span>

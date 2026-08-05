@@ -7,6 +7,7 @@ import type { PlaybackSource, PlayerHandle } from "@/lib/player-engine";
 import { youtubePlayerEngine } from "@/lib/youtube-player-engine";
 import { html5PlayerEngine } from "@/lib/html5-player-engine";
 import { focusInRow } from "@/lib/tv-focus";
+import { markWatched } from "@/lib/watched";
 import { ChevronLeftIcon, PlayIcon, PauseIcon, SkipBackIcon, SkipForwardIcon, CloudSlashIcon, PopcornIcon } from "./icons";
 
 const SEEK_STEP_SECONDS = 20;
@@ -112,6 +113,11 @@ export default function TvPlayer({
         setIsPlaying(state === "playing" || state === "buffering");
       },
       onEnded: () => {
+        // video.id, not video.videoId: for Stremio those differ (id is the
+        // real stremioTitles/stremioEpisodes UUID markWatched's FK needs,
+        // videoId is the imdbId or "imdbId:season:episode" string used for
+        // stream resolution) — they're only the same value for YouTube.
+        markWatched(video.source, video.id, video.mediaType);
         if (nextVideo) onNextCardOpenChange(true);
         else onBack();
       },

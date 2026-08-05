@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
 import { categoryThumbnail } from "@/lib/youtube-thumbs";
 import { focusNearest, rememberFocus, recallFocus } from "@/lib/tv-focus";
-import { MicIcon, KeyboardIcon, BackspaceIcon, BinocularsIcon } from "./icons";
+import { MicIcon, KeyboardIcon, BackspaceIcon, BinocularsIcon, CheckIcon } from "./icons";
 
 const SUGGESTIONS = ["Dinos", "Songs", "Diggers", "Space", "Bugs"];
 const KEYBOARD_ROWS = ["ABCDEF", "GHIJKL", "MNOPQR", "STUVWX", "YZ0123", "456789"];
@@ -21,6 +21,9 @@ export default function TvSearch({
   const [mode, setMode] = useState<"say" | "spell">("spell");
   const [query, setQuery] = useState("");
   const [focusedResult, setFocusedResult] = useState<VideoCategory | null>(null);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const leftColRef = useRef<HTMLDivElement>(null);
@@ -33,6 +36,51 @@ export default function TvSearch({
     // reveals it.
     leftColRef.current?.querySelector<HTMLElement>('[data-tv-zone="toggle"]')?.focus();
   }, []);
+
+  // window.AndroidVoiceSearch only exists inside kids-kiosk-tv's WebView
+  // (see MainActivity's addJavascriptInterface) — checked in an effect, not
+  // inline in render, so server-rendered/first-paint markup (no window)
+  // matches what hydration produces instead of mismatching against it.
+  useEffect(() => {
+    // Reading an external system's state (does this WebView expose the
+    // bridge?), not deriving from props/state — the legitimate case the
+    // lint rule's own guidance carves out.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVoiceSupported(!!(window as unknown as { AndroidVoiceSearch?: unknown }).AndroidVoiceSearch);
+  }, []);
+
+  // Native → JS half of the bridge: VoiceSearchBridge calls these by name
+  // via evaluateJavascript once recognition finishes, the same convention
+  // MainActivity's own __tvRemotePlayPause already uses in the other
+  // direction. Registered/torn down with this screen's lifetime so a result
+  // that arrives after the user has already navigated away is a no-op.
+  useEffect(() => {
+    const win = window as unknown as {
+      __tvVoiceSearchResult?: (text: string) => void;
+      __tvVoiceSearchError?: (reason: string) => void;
+    };
+    win.__tvVoiceSearchResult = (text: string) => {
+      setListening(false);
+      setVoiceError(null);
+      setQuery(text);
+    };
+    win.__tvVoiceSearchError = (reason: string) => {
+      setListening(false);
+      setVoiceError(reason);
+    };
+    return () => {
+      delete win.__tvVoiceSearchResult;
+      delete win.__tvVoiceSearchError;
+    };
+  }, []);
+
+  function startVoiceSearch() {
+    const bridge = (window as unknown as { AndroidVoiceSearch?: { startListening: () => void } }).AndroidVoiceSearch;
+    if (!bridge) return;
+    setVoiceError(null);
+    setListening(true);
+    bridge.startListening();
+  }
 
   const allCategories = useMemo(() => folders.flatMap((f) => f.categories), [folders]);
 
@@ -132,7 +180,7 @@ export default function TvSearch({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="flex h-full w-full gap-16 overflow-hidden pl-[420px] pr-16 pt-16"
+      className="tv-screen-root flex h-full w-full gap-16 overflow-hidden pr-16 pt-16"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       <div ref={leftColRef} className="flex w-[600px] shrink-0 flex-col">
@@ -174,15 +222,39 @@ export default function TvSearch({
               data-tv-focusable="true"
               data-tv-zone="mic"
               onFocus={(e) => rememberFocus("screen:search", e.currentTarget)}
+              onClick={voiceSupported ? startVoiceSearch : undefined}
               className="tv-focusable flex items-center justify-center rounded-full"
-              style={{ width: 180, height: 180, background: "var(--tv-accent-800)" }}
+              style={{
+                width: 180,
+                height: 180,
+                background: listening ? "var(--tv-accent-300)" : "var(--tv-accent-800)",
+              }}
             >
-              <MicIcon className="h-16 w-16" style={{ color: "var(--tv-accent-300)" }} />
+              <MicIcon className="h-16 w-16" style={{ color: listening ? "var(--tv-bg)" : "var(--tv-accent-300)" }} />
             </button>
-            <p className="mt-8 text-2xl font-medium">Voice search is coming soon</p>
-            <p className="mt-2 text-lg" style={{ color: "var(--tv-text-muted)" }}>
-              Try &ldquo;Spell it&rdquo; for now
-            </p>
+            {voiceSupported ? (
+              <p className="mt-8 text-2xl font-medium">
+                {listening
+                  ? "Listening…"
+                  : voiceError
+                    ? "Didn't catch that"
+                    : query
+                      ? `“${query}”`
+                      : "Tap the mic and say a show name"}
+              </p>
+            ) : (
+              <>
+                <p className="mt-8 text-2xl font-medium">Voice search is coming soon</p>
+                <p className="mt-2 text-lg" style={{ color: "var(--tv-text-muted)" }}>
+                  Try &ldquo;Spell it&rdquo; for now
+                </p>
+              </>
+            )}
+            {voiceSupported && voiceError && (
+              <p className="mt-2 text-lg" style={{ color: "var(--tv-text-muted)" }}>
+                {voiceError === "permission-denied" ? "Ask a grown-up to allow the microphone." : "Try again, or use “Spell it”."}
+              </p>
+            )}
           </div>
         ) : (
           <>
@@ -330,6 +402,15 @@ export default function TvSearch({
                     style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
                   >
                     {c.videos.length > 1 ? "Series" : "Movie"}
+                  </span>
+                )}
+                {c.videos.length > 0 && c.videos.every((v) => v.watched) && (
+                  <span
+                    className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full"
+                    style={{ background: "var(--tv-accent-300)" }}
+                    aria-label="Watched"
+                  >
+                    <CheckIcon className="h-3.5 w-3.5" style={{ color: "var(--tv-bg)" }} />
                   </span>
                 )}
                 <span className="absolute bottom-2 left-2 right-2 truncate text-sm font-medium" style={{ textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>

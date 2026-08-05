@@ -66,6 +66,14 @@ export function PlayIcon({ className, style }: IconProps) {
   );
 }
 
+export function CheckIcon({ className, style }: IconProps) {
+  return (
+    <svg {...base} className={className} style={style}>
+      <path d="M5 12.5 9.5 17 19 7" />
+    </svg>
+  );
+}
+
 export function PauseIcon({ className, style }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} style={style} fill="currentColor">

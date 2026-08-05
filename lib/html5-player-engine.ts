@@ -8,7 +8,7 @@ interface StreamResponse {
 }
 
 export const html5PlayerEngine: PlayerEngine = {
-  mount(container, source, callbacks): PlayerHandle {
+  mount(container, source, callbacks, options): PlayerHandle {
     if (source.source !== "stremio") {
       throw new Error("html5PlayerEngine given a non-stremio source");
     }
@@ -38,6 +38,7 @@ export const html5PlayerEngine: PlayerEngine = {
         const el = document.createElement("video");
         el.autoplay = true;
         el.playsInline = true;
+        el.controls = !!options?.nativeControls;
         el.style.width = "100%";
         el.style.height = "100%";
         el.style.objectFit = "contain";

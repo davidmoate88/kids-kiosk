@@ -14,7 +14,7 @@ import {
   recallFocus,
   scrollRowToTile,
 } from "@/lib/tv-focus";
-import { PlayIcon } from "./icons";
+import { PlayIcon, CheckIcon } from "./icons";
 
 type Row = { id: string; title: string; tiles: VideoCategory[] };
 
@@ -187,7 +187,12 @@ export default function TvHome({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      className="relative h-full w-full overflow-hidden"
+      // tv-home-root (globals.css) sets --tv-content-offset here, not on the
+      // hero/rows divs directly: peer-focus-within only matches *direct*
+      // siblings of the rail — this root div is that direct sibling,
+      // hero/rows are nested inside it, so they read the value via
+      // inheritance instead.
+      className="tv-home-root relative h-full w-full overflow-hidden"
       style={{ background: "var(--tv-bg)", color: "var(--tv-text)", fontFamily: "var(--font-tv)" }}
     >
       {/* Background: a soft blurred wash colored from the focused show's art,
@@ -232,11 +237,19 @@ export default function TvHome({
       />
 
       {previewing && (
-        <HeroDwellPreview key={previewing.id} videoId={previewing.videos[0]?.videoId} />
+        <HeroDwellPreview
+          key={previewing.id}
+          videoId={previewing.videos[0]?.videoId}
+          source={previewing.videos[0]?.source}
+          posterUrl={categoryThumbnail(previewing)}
+        />
       )}
 
       {/* Hero */}
-      <div className="relative z-10 pl-[420px] pt-24" style={{ width: 760 }}>
+      <div
+        className="relative z-10 pl-[var(--tv-content-offset)] pt-24 transition-[padding-left] duration-200"
+        style={{ width: 760 }}
+      >
         {/* Fixed-height slot regardless of previewing state — this row used
             to only exist in the DOM when previewing was true, so the title
             (and everything below it) shifted up ~56px every time a D-pad
@@ -345,7 +358,10 @@ export default function TvHome({
       </div>
 
       {/* Rows */}
-      <div className="absolute left-[420px] flex flex-col gap-[26px]" style={{ top: 560, right: 0 }}>
+      <div
+        className="absolute left-[var(--tv-content-offset)] flex flex-col gap-[26px] transition-[left] duration-200"
+        style={{ top: 560, right: 0 }}
+      >
         {rows.map((row, rowIndex) => (
           <div key={row.id} className="relative">
             <h2 className="mb-2 text-lg font-semibold" style={{ color: "var(--tv-text)" }}>
@@ -406,6 +422,22 @@ export default function TvHome({
                     >
                       {tile.label}
                     </span>
+                    {tile.videos.length > 0 && tile.videos.every((v) => v.watched) && (
+                      // Whole-category watched, not per-episode — a
+                      // multi-episode show only gets this once every episode
+                      // has been seen; Detail's own episode list is where
+                      // per-episode watched state actually shows. Placed
+                      // beside the play button rather than near the bottom
+                      // title text, which wraps to 2 lines often enough
+                      // that a bottom-corner badge risked overlapping it.
+                      <span
+                        className="absolute right-[60px] top-3 flex h-8 w-8 items-center justify-center rounded-full"
+                        style={{ background: "var(--tv-accent-300)" }}
+                        aria-label="Watched"
+                      >
+                        <CheckIcon className="h-4 w-4" style={{ color: "var(--tv-bg)" }} />
+                      </span>
+                    )}
                     <span
                       className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full"
                       style={{ background: "rgba(0,0,0,0.55)" }}
@@ -426,13 +458,30 @@ export default function TvHome({
 /** Muted, autoplaying dwell preview of a show's first video, behind the
  * hero text. Reuses the same YouTube IFrame API integration as the main
  * player. Unmounting (parent clears `previewing`) tears the player down —
- * there's no persistent instance to manage here, unlike the main player. */
-function HeroDwellPreview({ videoId }: { videoId?: string }) {
+ * there's no persistent instance to manage here, unlike the main player.
+ * Stremio categories get the static poster only, never a live player — no
+ * AIOStreams round-trip on every hover (deliberate Phase 3 scope decision,
+ * not just an unimplemented feature). */
+function HeroDwellPreview({
+  videoId,
+  source,
+  posterUrl,
+}: {
+  videoId?: string;
+  source?: "youtube" | "stremio";
+  posterUrl?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
+  const isYouTube = source === "youtube";
 
   useEffect(() => {
-    if (!videoId || !containerRef.current) return;
+    // Guarded on isYouTube: previously this ran unconditionally and tried to
+    // build a YouTube player from a Stremio videoId (a bare imdbId or
+    // "imdbId:season:episode" string) — garbage as a YouTube video ID, with
+    // no onError handling. Not a graceful no-op, an actual failed load
+    // attempted on every single Stremio-category dwell.
+    if (!isYouTube || !videoId || !containerRef.current) return;
     let cancelled = false;
     let stopWatchingIframe: (() => void) | null = null;
     loadYouTubeApi().then(() => {
@@ -459,7 +508,7 @@ function HeroDwellPreview({ videoId }: { videoId?: string }) {
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, [videoId]);
+  }, [videoId, isYouTube]);
 
   if (!videoId) return null;
 
@@ -476,7 +525,14 @@ function HeroDwellPreview({ videoId }: { videoId?: string }) {
         WebkitMaskImage: "linear-gradient(to left, black 74%, transparent 100%)",
       }}
     >
-      <div ref={containerRef} className="h-full w-full scale-125 opacity-80" />
+      {isYouTube ? (
+        <div ref={containerRef} className="h-full w-full scale-125 opacity-80" />
+      ) : (
+        posterUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- same pattern as WatchClient.tsx's other thumbnails
+          <img src={posterUrl} alt="" className="h-full w-full scale-125 object-cover opacity-80" />
+        )
+      )}
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[var(--tv-bg)] to-transparent" />
     </div>
   );

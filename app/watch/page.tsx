@@ -1,5 +1,5 @@
 import WatchClient from "@/components/WatchClient";
-import { filterYouTubeOnly, getWatchFolders } from "@/lib/watch-folders";
+import { getWatchFolders } from "@/lib/watch-folders";
 
 // getWatchFolders() now reads Postgres directly (no fetch() calls for Next
 // to attach cache/revalidate semantics to), so without this the page would
@@ -10,6 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function WatchPage() {
   const folders = await getWatchFolders();
-  // /watch has no Stremio playback engine yet (v1 scope is /tv-only).
-  return <WatchClient folders={filterYouTubeOnly(folders)} />;
+  // v1.1: /watch now shares the same PlayerHandle engine abstraction
+  // TvPlayer.tsx uses, so Stremio content plays here too — no more
+  // filterYouTubeOnly (see WatchClient.tsx for the engine wiring).
+  return <WatchClient folders={folders} />;
 }

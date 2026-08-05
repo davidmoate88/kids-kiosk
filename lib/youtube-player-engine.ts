@@ -26,7 +26,7 @@ function toPlaybackState(ytState: number): PlaybackState {
 }
 
 export const youtubePlayerEngine: PlayerEngine = {
-  mount(container, source, callbacks): PlayerHandle {
+  mount(container, source, callbacks, options): PlayerHandle {
     if (source.source !== "youtube") {
       throw new Error("youtubePlayerEngine given a non-youtube source");
     }
@@ -56,12 +56,12 @@ export const youtubePlayerEngine: PlayerEngine = {
           // playback actually starts (below) is allowed because it
           // follows the genuine user gesture that opened this screen.
           mute: 1,
-          controls: 0,
+          controls: options?.nativeControls ? 1 : 0,
           modestbranding: 1,
           playsinline: 1,
           rel: 0,
           iv_load_policy: 3,
-          fs: 0,
+          fs: options?.nativeControls ? 1 : 0,
         },
         events: {
           onStateChange: (e: { data: number }) => {

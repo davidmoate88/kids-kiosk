@@ -163,7 +163,10 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: "var(--tv-bg)" }}>
-      {/* shrink-0: see the comment on the equivalent !hasContent branch above. */}
+      {/* shrink-0: see the comment on the equivalent !hasContent branch above.
+          Each screen's root uses peer-focus-within: (not group-focus-within:)
+          to shift its content only while the rail is actually expanded — see
+          NavRail's own doc comment for why it has to be peer, not group. */}
       <div
         className="relative shrink-0"
         style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "center center" }}

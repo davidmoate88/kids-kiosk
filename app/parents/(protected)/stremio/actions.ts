@@ -120,3 +120,19 @@ export async function syncTrustedRowNow(rowId: string) {
   await syncTrustedRowDiscovery(rowId, true);
   revalidatePath("/parents/stremio");
 }
+
+// Mirrors sources/actions.ts's updateCatalogueFolder — YouTube catalogues
+// have had edit-after-the-fact folder reassignment since Phase 2; trusted
+// Stremio rows didn't (v1.1). Individually search/browse-approved titles
+// aren't covered here — they have no persistent list view to edit from at
+// all yet (see the v1.1 plan), only trusted rows, which cover the large
+// majority of Stremio content.
+export async function updateTrustedRowFolder(rowId: string, folder: string) {
+  const trimmed = folder.trim();
+  if (!trimmed) return;
+  const db = getDb();
+  await db.update(stremioTrustedRows).set({ folder: trimmed }).where(eq(stremioTrustedRows.id, rowId));
+  revalidatePath("/parents/stremio");
+  revalidatePath("/watch");
+  revalidatePath("/tv");
+}
