@@ -69,22 +69,15 @@ async function getYouTubeCategories(): Promise<(VideoCategory & { folder: string
   }
 
   const categories: (VideoCategory & { folder: string })[] = [];
-  const standaloneVideos: ApprovedVideo[] = [];
 
   for (const t of approved) {
     const titleEpisodes = episodesByTitle.get(t.titleId) ?? [];
 
-    if (titleEpisodes.length === 0 && !t.catalogueId) {
-      // Standalone hand-approved video (no catalogue, no episodes rows) —
-      // the title itself IS the video.
-      standaloneVideos.push({
-        id: t.titleExternalId,
-        videoId: t.titleExternalId,
-        title: t.titleName,
-        source: "youtube",
-      });
-      continue;
-    }
+    // Standalone hand-approved videos (no catalogue, no episode rows) used to
+    // land in a synthetic "My Videos" bucket — removed as redundant now that
+    // real channels/Stremio content cover the same ground. Still approved in
+    // the DB (see /parents/approve), just not surfaced as their own row.
+    if (titleEpisodes.length === 0 && !t.catalogueId) continue;
 
     const visibleEpisodes =
       t.scope === "all" ? titleEpisodes : titleEpisodes.filter((e) => t.approvedEpisodeIds.includes(e.id));
@@ -101,16 +94,6 @@ async function getYouTubeCategories(): Promise<(VideoCategory & { folder: string
         source: "youtube" as const,
       })),
       folder: t.folder ?? STANDALONE_FOLDER,
-    });
-  }
-
-  if (standaloneVideos.length > 0) {
-    categories.unshift({
-      id: "videos",
-      label: "My Videos",
-      emoji: "⭐",
-      videos: standaloneVideos,
-      folder: STANDALONE_FOLDER,
     });
   }
 
