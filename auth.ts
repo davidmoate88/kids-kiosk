@@ -57,11 +57,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     // Optimistic check only — proxy.ts runs this on every request including
     // prefetches, so it must stay cookie-only (no DB calls). The real check
-    // happens again via auth() in app/parents/layout.tsx, close to the data.
+    // happens again via auth() in app/parents/layout.tsx (and the same guard
+    // in the kid-facing server pages), close to the data.
+    //
+    // Since the app is being exposed to the public internet via Cloudflare
+    // Tunnel (see docs/DEPLOY_HOME_SERVER.md), EVERY page — kids' content
+    // included, not just /parents — is now gated behind the shared PIN. Only
+    // the login page itself is exempt. The auth API routes, static assets
+    // and API routes are excluded from the matcher in proxy.ts rather than
+    // here in the callback.
     authorized({ request, auth: session }) {
-      const isProtected = request.nextUrl.pathname.startsWith("/parents") &&
-        request.nextUrl.pathname !== "/parents/login";
-      return isProtected ? Boolean(session?.user) : true;
+      const isLoginPage = request.nextUrl.pathname === "/parents/login";
+      return isLoginPage ? true : Boolean(session?.user);
     },
   },
 });

@@ -6,10 +6,19 @@ import { signIn } from "@/auth";
 export type LoginState = { error?: string } | undefined;
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
+  // Where to land after unlocking. Auth.js appends ?callbackUrl= from the
+  // proxy redirect (or requireAuth's redirect); default to /watch. Only
+  // accept same-origin, root-relative paths to avoid an open redirection.
+  const callbackUrlRaw = formData.get("callbackUrl");
+  const callbackUrl =
+    typeof callbackUrlRaw === "string" && callbackUrlRaw.startsWith("/") && !callbackUrlRaw.startsWith("//")
+      ? callbackUrlRaw
+      : "/watch";
+
   try {
     await signIn("credentials", {
       pin: formData.get("pin"),
-      redirectTo: "/parents",
+      redirectTo: callbackUrl,
     });
   } catch (error) {
     if (error instanceof AuthError) {
