@@ -99,10 +99,18 @@ export async function browseCatalogRow(
   return metas.map((m) => ({ imdbId: m.id, mediaType: type, name: m.name, posterUrl: m.poster }));
 }
 
+// Same on-the-wire shape as a CatalogItem (that's what the addon's
+// /taste/search returns — metas with `id`, like the catalog rows do). The
+// previous `imdbId`-only interface silently dropped every result, because
+// browse paths read the addon's `id` field while this one read `imdbId` —
+// the search *URL* worked, the response mapping killed all results before
+// they ever reached the dashboard. Accept either spelling defensively.
 interface SearchResponseItem {
+  id?: string;
   imdbId?: string;
   type: StremioMediaType;
-  title: string;
+  title?: string;
+  name?: string;
   poster?: string;
   year?: string;
 }
@@ -121,8 +129,16 @@ export async function searchCatalog(
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   const results = (await res.json()) as SearchResponseItem[];
   return results
-    .filter((r): r is SearchResponseItem & { imdbId: string } => Boolean(r.imdbId))
-    .map((r) => ({ imdbId: r.imdbId, mediaType: r.type, name: r.title, posterUrl: r.poster, year: r.year }));
+    .filter(
+      (r): r is SearchResponseItem & { id: string } => typeof (r.imdbId ?? r.id) === "string"
+    )
+    .map((r) => ({
+      imdbId: r.imdbId ?? r.id,
+      mediaType: r.type,
+      name: r.title ?? r.name ?? "Untitled",
+      posterUrl: r.poster,
+      year: r.year,
+    }));
 }
 
 /** Genre + age-rating options for the search/browse filter dropdowns —

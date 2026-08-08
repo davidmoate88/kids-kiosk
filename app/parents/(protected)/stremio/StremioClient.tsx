@@ -158,6 +158,7 @@ export default function StremioClient({
   const [searchMaxRating, setSearchMaxRating] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   function changeSearchType(type: StremioMediaType) {
     setSearchType(type);
@@ -168,6 +169,7 @@ export default function StremioClient({
     e.preventDefault();
     if (!query.trim()) return;
     setSearching(true);
+    setSearchError(null);
     try {
       setSearchResults(
         await searchStremio(searchType, query, {
@@ -175,6 +177,10 @@ export default function StremioClient({
           maxRating: (searchMaxRating || undefined) as StremioAgeRating | undefined,
         })
       );
+    } catch (err) {
+      // Previously this was a bare try/finally with no catch, so a failed
+      // fetch left the button stuck at "Searching…" with no message.
+      setSearchError(err instanceof Error ? err.message : "Search failed.");
     } finally {
       setSearching(false);
     }
@@ -187,6 +193,7 @@ export default function StremioClient({
   const [browseResults, setBrowseResults] = useState<CatalogItem[]>([]);
   const [browseSkip, setBrowseSkip] = useState(0);
   const [browsing, setBrowsing] = useState(false);
+  const [browseError, setBrowseError] = useState<string | null>(null);
 
   // Overrides let a filter-change call this in the same tick it updates
   // state — reading browseGenre/browseMaxRating from the closure would see
@@ -197,6 +204,7 @@ export default function StremioClient({
     const genre = overrides?.genre ?? browseGenre;
     const maxRating = overrides?.maxRating ?? browseMaxRating;
     setBrowsing(true);
+    setBrowseError(null);
     try {
       setBrowseResults(
         await browseStremioRow(rowId, row.type, skip, {
@@ -206,6 +214,8 @@ export default function StremioClient({
       );
       setBrowseSkip(skip);
       setBrowseRowId(rowId);
+    } catch (err) {
+      setBrowseError(err instanceof Error ? err.message : "Browse failed.");
     } finally {
       setBrowsing(false);
     }
@@ -282,6 +292,11 @@ export default function StremioClient({
             {searching ? "Searching…" : "Search"}
           </button>
         </form>
+        {searchError && (
+          <p className="text-sm" style={{ color: "#ff7a7a" }}>
+            Search failed: {searchError}
+          </p>
+        )}
         {searchResults.length > 0 && (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {searchResults.map((item) => (
@@ -352,6 +367,11 @@ export default function StremioClient({
             {browsing ? "Loading…" : "Browse"}
           </button>
         </div>
+        {browseError && (
+          <p className="text-sm" style={{ color: "#ff7a7a" }}>
+            Browse failed: {browseError}
+          </p>
+        )}
         {browseResults.length > 0 && (
           <>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
