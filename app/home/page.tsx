@@ -19,6 +19,7 @@ export default function HomePage() {
         <Tile href="/watch" emoji="📺" label="Watch" colorVar="var(--watch)" colorDarkVar="var(--watch-dark)" />
         <Tile href="/places" emoji="🗺️" label="Places" colorVar="var(--places)" colorDarkVar="var(--places-dark)" />
         <Tile href="/rewards" emoji="🏅" label="My Stickers" colorVar="var(--warm)" colorDarkVar="var(--warm-dark)" />
+        <Tile href="/history" emoji="🕐" label="Watched" colorVar="var(--learn)" colorDarkVar="var(--learn-dark)" />
       </div>
     </div>
   );

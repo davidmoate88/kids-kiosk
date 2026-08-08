@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -189,6 +190,24 @@ export const watchedContent = pgTable("watched_content", {
   uniqueIndex("watched_content_episode_idx").on(table.episodeId),
   uniqueIndex("watched_content_stremio_episode_idx").on(table.stremioEpisodeId),
   uniqueIndex("watched_content_stremio_title_idx").on(table.stremioTitleId),
+]);
+
+// Per-profile watch-event log — separate from watchedContent's "has this ever
+// been watched?" checkmark. An append-only log (no uniqueness): the same
+// video can appear many times across rewatches, and rows with a null
+// profile_id are TV kiosk plays (no profile selected) that are invisible to
+// per-kid /history queries. Exactly one FK column is set per row, matching
+// `source`, same asymmetry as watchedContent.
+export const watchHistory = pgTable("watch_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: text("profile_id"),
+  source: watchSourceEnum("source").notNull(),
+  episodeId: uuid("episode_id").references(() => episodes.id, { onDelete: "cascade" }),
+  stremioEpisodeId: uuid("stremio_episode_id").references(() => stremioEpisodes.id, { onDelete: "cascade" }),
+  stremioTitleId: uuid("stremio_title_id").references(() => stremioTitles.id, { onDelete: "cascade" }),
+  watchedAt: timestamp("watched_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("watch_history_profile_time_idx").on(table.profileId, table.watchedAt),
 ]);
 
 // --- Relations ---

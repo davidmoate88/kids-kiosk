@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
+import { useProfile } from "@/components/ProfileContext";
 import type { ApprovedVideo } from "@/lib/watch-folders";
 import type { PlaybackSource, PlayerHandle } from "@/lib/player-engine";
 import { youtubePlayerEngine } from "@/lib/youtube-player-engine";
@@ -83,11 +84,13 @@ function focusTvNeighbor(direction: "up" | "down" | "left" | "right") {
 const tvFocusRing =
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400 focus-visible:ring-offset-4 focus-visible:ring-offset-transparent";
 
-export default function WatchClient({ folders, tvMode = false }: { folders: VideoFolder[]; tvMode?: boolean }) {
+export default function WatchClient({ folders, tvMode = false, initialVideo = null }: { folders: VideoFolder[]; tvMode?: boolean; initialVideo?: ApprovedVideo | null }) {
   const initialFolderId = folders.length === 1 ? folders[0].id : "";
   const [folderId, setFolderId] = useState(initialFolderId);
   const [categoryId, setCategoryId] = useState("");
-  const [selected, setSelected] = useState<ApprovedVideo | null>(null);
+  const [selected, setSelected] = useState<ApprovedVideo | null>(initialVideo);
+
+  const { profile } = useProfile();
 
   const folder = folders.find((f) => f.id === folderId);
   const categories = folder?.categories ?? [];
@@ -99,6 +102,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerHandle | null>(null);
   const selectedRef = useRef(selected);
+  const profileRef = useRef(profile);
   const folderIdRef = useRef(folderId);
   const categoryVideosRef = useRef<ApprovedVideo[]>([]);
   const markerArmedRef = useRef(false);
@@ -106,6 +110,10 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   useEffect(() => {
     folderIdRef.current = folderId;
@@ -205,7 +213,7 @@ export default function WatchClient({ folders, tvMode = false }: { folders: Vide
           // reused player instance (unlike the old raw-player code, this
           // effect fully remounts per video, matching TvPlayer.tsx).
           if (selectedRef.current) {
-            markWatched(selectedRef.current.source, selectedRef.current.id, selectedRef.current.mediaType);
+            markWatched(selectedRef.current.source, selectedRef.current.id, selectedRef.current.mediaType, profileRef.current?.id);
           }
           advanceToNext();
         },

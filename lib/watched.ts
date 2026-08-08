@@ -3,11 +3,14 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { episodes, watchedContent } from "@/db/schema";
+import { episodes, watchedContent, watchHistory } from "@/db/schema";
 
 // Called from TvPlayer.tsx's onEnded and WatchClient.tsx's YouTube "ended"
-// handler, whenever a video plays to completion. Global/device-wide, not
-// per-profile — see db/schema.ts's comment on watchedContent for why.
+// handler, whenever a video plays to completion. Always updates
+// watchedContent (the global "watched to completion" checkmark). When a
+// profileId is provided (from ProfileContext on the phone/tablet — TV
+// kiosk has no profile), also appends a row to watchHistory to power the
+// per-kid /history page.
 //
 // `videoId` is whatever ApprovedVideo.id already is for that source (see
 // lib/watch-folders.ts): for YouTube that's the external YouTube video id
@@ -19,7 +22,8 @@ import { episodes, watchedContent } from "@/db/schema";
 export async function markWatched(
   source: "youtube" | "stremio",
   videoId: string,
-  mediaType?: "movie" | "series"
+  mediaType?: "movie" | "series",
+  profileId?: string | null,
 ): Promise<void> {
   const db = getDb();
 
@@ -33,22 +37,27 @@ export async function markWatched(
     // an already-approved episode), but silently no-op rather than crash
     // the player over a "mark as watched" side effect.
     if (!episode) return;
-    await db
-      .insert(watchedContent)
-      .values({ source: "youtube", episodeId: episode.id })
-      .onConflictDoNothing({ target: watchedContent.episodeId });
+
+    const values = { source: "youtube" as const, episodeId: episode.id };
+    await db.insert(watchedContent).values(values).onConflictDoNothing({ target: watchedContent.episodeId });
+    if (profileId) {
+      await db.insert(watchHistory).values({ ...values, profileId });
+    }
   } else if (mediaType === "movie") {
-    await db
-      .insert(watchedContent)
-      .values({ source: "stremio", stremioTitleId: videoId })
-      .onConflictDoNothing({ target: watchedContent.stremioTitleId });
+    const values = { source: "stremio" as const, stremioTitleId: videoId };
+    await db.insert(watchedContent).values(values).onConflictDoNothing({ target: watchedContent.stremioTitleId });
+    if (profileId) {
+      await db.insert(watchHistory).values({ ...values, profileId });
+    }
   } else {
-    await db
-      .insert(watchedContent)
-      .values({ source: "stremio", stremioEpisodeId: videoId })
-      .onConflictDoNothing({ target: watchedContent.stremioEpisodeId });
+    const values = { source: "stremio" as const, stremioEpisodeId: videoId };
+    await db.insert(watchedContent).values(values).onConflictDoNothing({ target: watchedContent.stremioEpisodeId });
+    if (profileId) {
+      await db.insert(watchHistory).values({ ...values, profileId });
+    }
   }
 
   revalidatePath("/tv");
   revalidatePath("/watch");
+  if (profileId) revalidatePath("/history");
 }
