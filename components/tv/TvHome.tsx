@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
 import { categoryThumbnail } from "@/lib/youtube-thumbs";
 import { averageColor } from "@/lib/dominant-color";
@@ -16,9 +16,15 @@ import {
 } from "@/lib/tv-focus";
 import { PlayIcon, CheckIcon } from "./icons";
 
-type Row = { id: string; title: string; tiles: VideoCategory[] };
-
 const FALLBACK_WASH = "rgb(66, 58, 106)"; // --tv-accent-800
+
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 export default function TvHome({
   folders,
@@ -29,13 +35,20 @@ export default function TvHome({
   onOpenDetail: (category: VideoCategory) => void;
   onGoToRail: () => void;
 }) {
-  const rows: Row[] = useMemo(
-    () => folders.map((f) => ({ id: f.id, title: f.label, tiles: f.categories })).filter((r) => r.tiles.length > 0),
-    [folders]
-  );
-
-  const firstTile = rows[0]?.tiles[0] ?? null;
-  const [heroCategory, setHeroCategory] = useState<VideoCategory | null>(firstTile);
+  const [state] = useState(() => {
+    const r = folders
+      .map((f) => ({
+        id: f.id,
+        title: f.label,
+        tiles: shuffle([...f.categories]),
+      }))
+      .filter((row) => row.tiles.length > 0);
+    const all = r.flatMap((row) => row.tiles);
+    const pick = all.length > 0 ? all[Math.floor(Math.random() * all.length)] : null;
+    return { rows: r, randomTile: pick };
+  });
+  const rows = state.rows;
+  const [heroCategory, setHeroCategory] = useState<VideoCategory | null>(state.randomTile);
   const [previewing, setPreviewing] = useState<VideoCategory | null>(null);
   // Two-layer crossfade rather than transitioning backgroundColor directly:
   // each layer gets blur-[160px] applied to itself individually (baked in at
