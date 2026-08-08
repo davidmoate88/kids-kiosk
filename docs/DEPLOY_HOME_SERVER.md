@@ -35,6 +35,12 @@ already uses.
   every other container here.
 - **Service**: `systemd` unit at `/etc/systemd/system/kids-kiosk.service`,
   `Restart=always`.
+- **PWA** (v1.2): `/manifest.webmanifest` (from `app/manifest.ts`) and a
+  shell-only service worker at `/sw.js` are in the repo, but **inert on
+  this plain-HTTP deploy** — service workers (and therefore any PWA
+  installability) require a secure origin, so nothing registers until the
+  container is behind HTTPS (see "open points" below). No action needed for
+  this deploy.
 - **Auth**: `auth.ts` sets `trustHost: true` — Auth.js otherwise rejects
   requests whose `Host` header isn't a platform it recognizes (Vercel,
   etc.), which is exactly what a bare-IP/self-hosted deployment looks like.
@@ -103,6 +109,25 @@ PGPASSWORD=<see .env.local> psql -h localhost -U kids_kiosk -d kids_kiosk
   done yet, since `/watch` and `/tv` have no login at all by design (a kid
   just presses play), so making them internet-reachable is a real,
   separate decision from just "get it hosted," not an oversight.
+
+  **Open point (phone app — tracking, not blocking):** the v1.2 aim is a
+  phone app for the kids, which needs out-of-LAN reachability. Both
+  delivery paths are prepared but neutral until this is decided:
+  - **PWA** — manifest + shell-only service worker are already deployed
+    (they're inert over plain HTTP; service workers need a secure
+    origin), so once a tunnel exists, everything activates with no code
+    change.
+  - **Native Android wrapper** — `kids-kiosk-android` repo (a WebView
+    shell) points at `http://192.168.1.58/` now for local builds; the
+    target URL lives in one constant so switching to an HTTPS hostname is
+    a one-line change.
+  - When a real hostname is chosen (see the `family-dashboard`/`cable`
+    pattern for how this home lab already does it), the concrete steps
+    are: Cloudflare Tunnel on the container (or Proxmox) with a static
+    DNS route, nearly identical to `cablegrid`'s setup; then point the
+    PWA manifest-`start_url`/icons to the new origin and update the
+    wrapper's one constant. Until then, nothing runs off-LAN and
+    everything is local-only — which is exactly what's wanted right now.
 - **No firewall rule reviewed** — reachable from anywhere on the LAN.
 - ~~No backup of the database~~ — addressed in v1.1, see "Nightly backup"
   above. Still local-to-the-container only (no off-container replication) —
