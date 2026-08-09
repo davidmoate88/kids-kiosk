@@ -22,10 +22,9 @@ export type HistoryItem = {
   watchedAt: Date;
 };
 
-export async function getWatchHistory(
-  profileId: string,
-  limit = 30,
-): Promise<HistoryItem[]> {
+// One shared, household-wide history — see db/schema.ts's watchHistory
+// comment for why this isn't split per kid profile.
+export async function getWatchHistory(limit = 30): Promise<HistoryItem[]> {
   const db = getDb();
 
   const [youtubeRows, stremioMovieRows, stremioEpisodeRows] =
@@ -42,7 +41,6 @@ export async function getWatchHistory(
         .from(watchHistory)
         .innerJoin(episodes, eq(watchHistory.episodeId, episodes.id))
         .innerJoin(titles, eq(episodes.titleId, titles.id))
-        .where(eq(watchHistory.profileId, profileId))
         .orderBy(desc(watchHistory.watchedAt))
         .limit(limit),
 
@@ -57,7 +55,6 @@ export async function getWatchHistory(
         })
         .from(watchHistory)
         .innerJoin(stremioTitles, eq(watchHistory.stremioTitleId, stremioTitles.id))
-        .where(eq(watchHistory.profileId, profileId))
         .orderBy(desc(watchHistory.watchedAt))
         .limit(limit),
 
@@ -81,7 +78,6 @@ export async function getWatchHistory(
           stremioTitles,
           eq(stremioEpisodes.stremioTitleId, stremioTitles.id),
         )
-        .where(eq(watchHistory.profileId, profileId))
         .orderBy(desc(watchHistory.watchedAt))
         .limit(limit),
     ]);

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PageHeading, BigButton } from "@/components/Tile";
-import { useProfile } from "@/components/ProfileContext";
 import type { ApprovedVideo } from "@/lib/watch-folders";
 import type { PlaybackSource, PlayerHandle } from "@/lib/player-engine";
 import { youtubePlayerEngine } from "@/lib/youtube-player-engine";
@@ -90,8 +89,6 @@ export default function WatchClient({ folders, tvMode = false, initialVideo = nu
   const [categoryId, setCategoryId] = useState("");
   const [selected, setSelected] = useState<ApprovedVideo | null>(initialVideo);
 
-  const { profile } = useProfile();
-
   const folder = folders.find((f) => f.id === folderId);
   const categories = folder?.categories ?? [];
   const category = categories.find((c) => c.id === categoryId) ?? categories[0];
@@ -102,7 +99,6 @@ export default function WatchClient({ folders, tvMode = false, initialVideo = nu
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerHandle | null>(null);
   const selectedRef = useRef(selected);
-  const profileRef = useRef(profile);
   const folderIdRef = useRef(folderId);
   const categoryVideosRef = useRef<ApprovedVideo[]>([]);
   const markerArmedRef = useRef(false);
@@ -110,10 +106,6 @@ export default function WatchClient({ folders, tvMode = false, initialVideo = nu
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
-
-  useEffect(() => {
-    profileRef.current = profile;
-  }, [profile]);
 
   useEffect(() => {
     folderIdRef.current = folderId;
@@ -213,7 +205,7 @@ export default function WatchClient({ folders, tvMode = false, initialVideo = nu
           // reused player instance (unlike the old raw-player code, this
           // effect fully remounts per video, matching TvPlayer.tsx).
           if (selectedRef.current) {
-            markWatched(selectedRef.current.source, selectedRef.current.id, selectedRef.current.mediaType, profileRef.current?.id);
+            markWatched(selectedRef.current.source, selectedRef.current.id, selectedRef.current.mediaType);
           }
           advanceToNext();
         },
