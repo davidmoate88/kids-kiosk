@@ -1,6 +1,5 @@
 import TvApp from "@/components/TvApp";
 import { getWatchFolders } from "@/lib/watch-folders";
-import { requireAuth } from "@/lib/require-auth";
 
 // See app/watch/page.tsx — same reasoning: getWatchFolders() reads Postgres
 // directly, so this must be forced dynamic or new approvals would be
@@ -14,7 +13,6 @@ export const dynamic = "force-dynamic";
  * needed, since TvApp doesn't track per-profile state.
  */
 export default async function TvPage() {
-  await requireAuth();
   const folders = await getWatchFolders();
   return <TvApp folders={folders} />;
 }

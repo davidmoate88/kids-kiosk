@@ -1,6 +1,5 @@
 import WatchClient from "@/components/WatchClient";
 import { getWatchFolders, type ApprovedVideo } from "@/lib/watch-folders";
-import { requireAuth } from "@/lib/require-auth";
 
 // getWatchFolders() now reads Postgres directly (no fetch() calls for Next
 // to attach cache/revalidate semantics to), so without this the page would
@@ -14,8 +13,6 @@ export default async function WatchPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // This route is now PIN-gated like everything else — see requireAuth().
-  await requireAuth();
   const folders = await getWatchFolders();
 
   const params = await searchParams;

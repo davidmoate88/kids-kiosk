@@ -11,13 +11,13 @@ import { stremioTitles } from "@/db/schema";
 // categories (confirmed directly: "Hentai" is one of its declared types)
 // that have no business anywhere near a kids' app.
 //
-// Since the app is now publicly reachable via Cloudflare Tunnel (and this
-// route is excluded from the proxy.ts matcher, like every /api route), the
-// approval check below is what keeps a random LAN/Internet caller from
-// using this as an open stream-resolver for any title — rows are only ever
-// created by a parent approving content (see parentStremio actions),
-// so requiring the imdbId to exist in stremioTitles is a genuine gate, not
-// a formality.
+// This route is excluded from the proxy.ts matcher, like every /api route,
+// so it's reachable by anyone on the LAN today and would be by anyone on
+// the internet too once a tunnel goes live. The approval check below is
+// what keeps a caller from using this as an open stream-resolver for any
+// title — rows are only ever created by a parent approving content (see
+// parentStremio actions), so requiring the imdbId to exist in
+// stremioTitles is a genuine gate, not a formality.
 const COMPAT_BAD_MARKERS = ["hevc", "x265", "truehd", "atmos", "dovi", "dv.", "hdr", "10bit", "10-bit"];
 
 interface AioStream {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "imdbId and a valid mediaType are required" }, { status: 400 });
   }
 
-const aioStreamsUrl = process.env.AIOSTREAMS_URL;
+  const aioStreamsUrl = process.env.AIOSTREAMS_URL;
   if (!aioStreamsUrl) {
     return NextResponse.json({ url: null });
   }
