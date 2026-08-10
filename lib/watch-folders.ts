@@ -213,6 +213,19 @@ function groupIntoFolders(categories: (VideoCategory & { folder: string })[]): V
     }
     bucket.categories.push(category);
   }
+
+  // Both YouTube and Stremio categories land here in whatever order their
+  // own queries happened to return (YouTube: title-name order; Stremio: raw
+  // table order) — sorting here, once, gives every reader (/watch's folder
+  // picker and category chips, /tv's Search/Detail/Favourites) one
+  // consistent, predictable order instead of each guessing independently.
+  // TvHome shuffles its own copy for browsing variety, so this doesn't
+  // fight that — it just gives the shuffle a deterministic starting point.
+  for (const bucket of folders) {
+    bucket.categories.sort((a, b) => a.label.localeCompare(b.label));
+  }
+  folders.sort((a, b) => a.label.localeCompare(b.label));
+
   return folders;
 }
 

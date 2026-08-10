@@ -396,12 +396,11 @@ export default function TvHome({
                     data-tv-col={tileIndex}
                     onFocus={(e) => handleTileFocus(tile, row.id, e.currentTarget)}
                     onClick={() => onOpenDetail(tile)}
-                    className="tv-focusable relative shrink-0 overflow-hidden rounded-[14px] text-left"
+                    className="tv-focusable tv-home-tile relative shrink-0 overflow-hidden rounded-[14px] text-left"
                     style={{
                       width: 300,
                       height: 170,
                       border: "1px solid rgba(233,233,237,0.1)",
-                      boxShadow: "var(--tv-shadow-md)",
                       background: "var(--tv-surface)",
                     }}
                   >
