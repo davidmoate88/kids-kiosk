@@ -58,6 +58,17 @@ export function ChevronLeftIcon({ className, style }: IconProps) {
   );
 }
 
+export function SwapIcon({ className, style }: IconProps) {
+  return (
+    <svg {...base} className={className} style={style}>
+      <path d="M4 8h13" />
+      <path d="M13.5 4.5 17 8l-3.5 3.5" />
+      <path d="M20 16H7" />
+      <path d="M10.5 12.5 7 16l3.5 3.5" />
+    </svg>
+  );
+}
+
 export function PlayIcon({ className, style }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} style={style} fill="currentColor">

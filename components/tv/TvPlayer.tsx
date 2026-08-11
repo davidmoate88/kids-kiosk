@@ -8,7 +8,7 @@ import { youtubePlayerEngine } from "@/lib/youtube-player-engine";
 import { html5PlayerEngine } from "@/lib/html5-player-engine";
 import { focusInRow } from "@/lib/tv-focus";
 import { markWatched } from "@/lib/watched";
-import { ChevronLeftIcon, PlayIcon, PauseIcon, SkipBackIcon, SkipForwardIcon, CloudSlashIcon, PopcornIcon } from "./icons";
+import { ChevronLeftIcon, PlayIcon, PauseIcon, SkipBackIcon, SkipForwardIcon, CloudSlashIcon, PopcornIcon, SwapIcon } from "./icons";
 
 const SEEK_STEP_SECONDS = 20;
 const CONTROLS_HIDE_MS = 4000;
@@ -54,6 +54,7 @@ export default function TvPlayer({
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [countdown, setCountdown] = useState(NEXT_EPISODE_COUNTDOWN_S);
+  const [sourceInfo, setSourceInfo] = useState<{ index: number; count: number } | null>(null);
 
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -94,6 +95,7 @@ export default function TvPlayer({
     if (!containerRef.current) return;
     setStreamError(false);
     setResolving(video.source === "stremio");
+    setSourceInfo(null);
 
     const engine = video.source === "youtube" ? youtubePlayerEngine : html5PlayerEngine;
     const source: PlaybackSource =
@@ -161,6 +163,7 @@ export default function TvPlayer({
         setElapsed(cur);
         setProgress(cur / dur);
       }
+      setSourceInfo(player.getSourceInfo?.() ?? null);
     }, 500);
     return () => clearInterval(poll);
   }, []);
@@ -390,6 +393,28 @@ export default function TvPlayer({
               <span className="text-xl" style={{ color: "var(--tv-text-muted)" }}>
                 {formatTime(elapsed)} / {formatTime(duration)}
               </span>
+              {sourceInfo && sourceInfo.count > 1 && (
+                // Stremio-only: some AIOStreams releases are simply bad
+                // (missing audio, wrong cut, a stall) in ways that never
+                // fire a runtime playback error, so automatic recovery
+                // (html5-player-engine.ts's handleFatalError) can't catch
+                // every case — this is the manual escape hatch. Absent for
+                // YouTube and for a Stremio title AIOStreams only resolved
+                // one candidate for.
+                <button
+                  data-tv-focusable="true"
+                  data-tv-player-controls="true"
+                  onClick={() => playerRef.current?.switchSource?.()}
+                  className="tv-focusable inline-flex items-center gap-2 rounded-full px-4 py-2 text-lg font-medium"
+                  style={{ background: "rgba(255,255,255,0.12)" }}
+                >
+                  <SwapIcon className="h-5 w-5" />
+                  Try another source
+                  <span style={{ color: "var(--tv-text-muted)" }}>
+                    {sourceInfo.index + 1}/{sourceInfo.count}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </>

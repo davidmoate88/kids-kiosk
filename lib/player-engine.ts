@@ -26,6 +26,13 @@ export interface PlayerHandle {
   getCurrentTime(): number;
   getDuration(): number;
   destroy(): void;
+  // Stremio-only: AIOStreams can resolve a title to several candidate
+  // releases, and some are simply bad (missing audio, wrong cut, a release
+  // that stalls) in ways a runtime playback error never fires for — so the
+  // chrome needs a manual escape hatch, not just automatic error recovery.
+  // Optional and absent on engines with only one possible source (YouTube).
+  getSourceInfo?(): { index: number; count: number } | null;
+  switchSource?(): void;
 }
 
 export interface MountCallbacks {
