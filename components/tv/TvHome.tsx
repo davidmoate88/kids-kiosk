@@ -311,7 +311,7 @@ export default function TvHome({
         <h1
           className="font-medium"
           style={{
-            fontSize: 72,
+            fontSize: 56,
             lineHeight: 0.98,
             letterSpacing: "-0.03em",
             display: "-webkit-box",
@@ -372,15 +372,24 @@ export default function TvHome({
 
       {/* Rows */}
       <div
-        className="absolute left-[var(--tv-content-offset)] flex flex-col gap-[26px] transition-[left] duration-200"
+        className="absolute left-[var(--tv-content-offset)] flex flex-col gap-[2px] transition-[left] duration-200"
         style={{ top: 560, right: 0 }}
       >
         {rows.map((row, rowIndex) => (
           <div key={row.id} className="relative">
-            <h2 className="mb-2 text-lg font-semibold" style={{ color: "var(--tv-text)" }}>
+            <h2 className="text-lg font-semibold" style={{ color: "var(--tv-text)" }}>
               {row.title}
             </h2>
-            <div className="overflow-hidden">
+            {/* py-6: a focused tile's ring+glow (.tv-focusable:focus-visible's
+                box-shadow, up to ~34px beyond the tile's own edge) was being
+                sliced off top and bottom by this container's overflow-hidden
+                — needed for horizontal-only clipping while the row's track
+                slides (see scrollRowToTile in lib/tv-focus.ts). Padding here
+                (not on the track) is what actually grows the clip box; the
+                row gap above is trimmed to 2px (was 26px, now h2's own
+                removed mb-2 + this padding cover that spacing) so total
+                row-to-row rhythm stays close to what it was. */}
+            <div className="overflow-hidden py-6">
               <div
                 ref={(el) => {
                   if (el) trackRefs.current.set(row.id, el);
