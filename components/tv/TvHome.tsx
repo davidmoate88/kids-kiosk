@@ -200,7 +200,7 @@ export default function TvHome({
     <div
       ref={rootRef}
       onKeyDown={handleKeyDown}
-      // tv-home-root (globals.css) sets --tv-content-offset here, not on the
+      // tv-home-root (globals.css) sets --tv-content-shift here, not on the
       // hero/rows divs directly: peer-focus-within only matches *direct*
       // siblings of the rail — this root div is that direct sibling,
       // hero/rows are nested inside it, so they read the value via
@@ -260,7 +260,7 @@ export default function TvHome({
 
       {/* Hero */}
       <div
-        className="relative z-10 pl-[var(--tv-content-offset)] pt-24 transition-[padding-left] duration-200"
+        className="relative z-10 translate-x-[var(--tv-content-shift)] pl-[200px] pt-24 transition-transform duration-200"
         style={{ width: 760 }}
       >
         {/* Fixed-height slot regardless of previewing state — this row used
@@ -372,7 +372,7 @@ export default function TvHome({
 
       {/* Rows */}
       <div
-        className="absolute left-[var(--tv-content-offset)] flex flex-col gap-[26px] transition-[left] duration-200"
+        className="absolute left-[200px] flex translate-x-[var(--tv-content-shift)] flex-col gap-[26px] transition-transform duration-200"
         style={{ top: 560, right: 0 }}
       >
         {rows.map((row, rowIndex) => (

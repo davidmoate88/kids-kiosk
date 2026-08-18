@@ -183,30 +183,62 @@
   z-index: 10;
 }
 
+/* NavRail's own buttons (issue #3): they need BOTH the transform-only
+   focus-visible scale above AND a width/height/padding transition for their
+   deliberate size growth on rail expand (44px square -> 64px-tall pill).
+   A Tailwind `transition-[...]` utility class on the element wouldn't work
+   here — Tailwind's utilities live in a CSS layer, and this plain,
+   unlayered .tv-focusable rule always wins the cascade over any layered
+   rule regardless of specificity, so it would silently kill the width/height
+   transition and leave the resize snapping instantly. Targeting both classes
+   together gives this genuinely higher specificity than plain .tv-focusable
+   on equal (unlayered) footing, so it wins regardless of source order. */
+.tv-focusable.tv-rail-item {
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    width 200ms,
+    height 200ms,
+    padding 200ms;
+}
+
 /* Content offset for every /tv screen: rests clear of the collapsed 96px
-   nav rail, expands to clear its full 384px expanded width only while the
+   nav rail, shifts clear of its full 384px expanded width only while the
    rail is actually focused (NavRail.tsx marks its root `peer` for this).
    Hand-written rather than Tailwind's peer-focus-within: JIT class — that
    didn't reliably compile for this combination (confirmed via devtools: no
    matching rule was ever generated), so this sidesteps the JIT entirely.
    .tv-screen-root is for screens whose own root is the rail's direct
    sibling (Search/Detail/Favourites/Grown-ups); .tv-home-root is TvHome's
-   variant, which sets the custom property instead of padding-left directly
+   variant, which sets the custom property instead of transform directly
    because its hero/rows are nested *inside* that root, not siblings of the
    rail themselves — peer-focus-within's sibling combinator can't reach a
-   sibling's descendants, only the sibling element itself. */
+   sibling's descendants, only the sibling element itself.
+
+   Was animated `padding-left`/`left` (with a fixed `right: 0` on the rows
+   track, so its *width* — not just position — recomputed every frame): a
+   layout property, forcing the browser to reflow every mapped row/tile on
+   Home each of the ~12 frames of the 200ms transition (issue #3, the same
+   class of jank as c439f52/78510f7 — see the .tv-focusable comment above).
+   Layout is now pinned permanently at the collapsed (200px) offset — it
+   never changes with focus state, so nothing ever reflows — and clearing
+   the expanded rail is done with `transform: translateX`, a compositor-only
+   op. The tradeoff: while the rail is actually focused, content that was
+   previously reflowed narrower to fit is instead shifted right and its
+   rightmost ~220px goes offscreen, rather than every tile re-wrapping to a
+   narrower row. Only matters during the brief expanded-focus state. */
 .tv-screen-root {
   padding-left: 200px;
-  transition: padding-left 200ms;
+  transform: translateX(0);
+  transition: transform 200ms;
 }
 .peer:focus-within ~ .tv-screen-root {
-  padding-left: 420px;
+  transform: translateX(220px);
 }
 .tv-home-root {
-  --tv-content-offset: 200px;
+  --tv-content-shift: 0px;
 }
 .peer:focus-within ~ .tv-home-root {
-  --tv-content-offset: 420px;
+  --tv-content-shift: 220px;
 }
 
 html {
