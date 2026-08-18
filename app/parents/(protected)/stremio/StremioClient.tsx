@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { stremioTrustedRows } from "@/db/schema";
 import type {
   CatalogItem,
@@ -194,6 +194,18 @@ export default function StremioClient({
   const [browseSkip, setBrowseSkip] = useState(0);
   const [browsing, setBrowsing] = useState(false);
   const [browseError, setBrowseError] = useState<string | null>(null);
+  // Separate from browseResults.length: a page can legitimately come back
+  // empty (Next past the end of a short row), and previously that hid the
+  // Previous/Next controls along with the results grid — no error, no way
+  // back except re-selecting the row, which read as "advance is broken."
+  const [hasBrowsed, setHasBrowsed] = useState(false);
+  // Guards against out-of-order responses: row/filter changes each fire
+  // their own runBrowse, and nothing stops an earlier one (e.g. a slower
+  // row-change request) resolving *after* a later one (a quick filter
+  // tweak) and clobbering its results — including flipping browsing back to
+  // false while the real latest request is still in flight. Only the call
+  // whose id still matches when it resolves gets to commit state.
+  const browseRequestRef = useRef(0);
 
   // Overrides let a filter-change call this in the same tick it updates
   // state — reading browseGenre/browseMaxRating from the closure would see
@@ -203,21 +215,24 @@ export default function StremioClient({
     if (!row) return;
     const genre = overrides?.genre ?? browseGenre;
     const maxRating = overrides?.maxRating ?? browseMaxRating;
+    const requestId = ++browseRequestRef.current;
     setBrowsing(true);
     setBrowseError(null);
     try {
-      setBrowseResults(
-        await browseStremioRow(rowId, row.type, skip, {
-          genre: genre || undefined,
-          maxRating: (maxRating || undefined) as StremioAgeRating | undefined,
-        })
-      );
+      const results = await browseStremioRow(rowId, row.type, skip, {
+        genre: genre || undefined,
+        maxRating: (maxRating || undefined) as StremioAgeRating | undefined,
+      });
+      if (requestId !== browseRequestRef.current) return;
+      setBrowseResults(results);
       setBrowseSkip(skip);
       setBrowseRowId(rowId);
+      setHasBrowsed(true);
     } catch (err) {
+      if (requestId !== browseRequestRef.current) return;
       setBrowseError(err instanceof Error ? err.message : "Browse failed.");
     } finally {
-      setBrowsing(false);
+      if (requestId === browseRequestRef.current) setBrowsing(false);
     }
   }
 
@@ -372,19 +387,25 @@ export default function StremioClient({
             Browse failed: {browseError}
           </p>
         )}
-        {browseResults.length > 0 && (
+        {hasBrowsed && (
           <>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {browseResults.map((item) => (
-                <ResultCard
-                  key={resultKey(item)}
-                  item={item}
-                  approved={approvedIds.has(resultKey(item))}
-                  folder={folder}
-                  onApprove={() => approve(item)}
-                />
-              ))}
-            </div>
+            {browseResults.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {browseResults.map((item) => (
+                  <ResultCard
+                    key={resultKey(item)}
+                    item={item}
+                    approved={approvedIds.has(resultKey(item))}
+                    folder={folder}
+                    onApprove={() => approve(item)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--tv-text-muted)" }}>
+                No results on this page.
+              </p>
+            )}
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -397,7 +418,10 @@ export default function StremioClient({
               </button>
               <button
                 type="button"
-                disabled={browsing}
+                // Fewer than a full page back means there's nothing after it —
+                // without this, clicking past the end always landed on an
+                // empty page (see hasBrowsed above).
+                disabled={browsing || browseResults.length < 20}
                 onClick={() => runBrowse(browseRowId, browseSkip + 20)}
                 className="rounded-lg px-3 py-1.5 text-sm disabled:opacity-40"
                 style={{ border: "1px solid var(--tv-divider)" }}
@@ -407,9 +431,11 @@ export default function StremioClient({
               {/* Rows can be hundreds of titles (see the Trust section's own
                   copy below) — Previous/Next with no sense of position was
                   the single biggest "how far through this am I" gap. */}
-              <span className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
-                Showing {browseSkip + 1}–{browseSkip + browseResults.length}
-              </span>
+              {browseResults.length > 0 && (
+                <span className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
+                  Showing {browseSkip + 1}–{browseSkip + browseResults.length}
+                </span>
+              )}
             </div>
           </>
         )}
