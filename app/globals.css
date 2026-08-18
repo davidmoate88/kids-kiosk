@@ -88,6 +88,15 @@
   --tv-shadow-sm: 0 0 0 1px #3f424d;
   --tv-shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
   --tv-shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+
+  /* Dedicated to the D-pad focus indicator only — deliberately a true,
+     saturated yellow rather than reusing --warm (that's a real brand color
+     used on actual buttons/tiles elsewhere, e.g. app/home/page.tsx's
+     Stickers/Surprise Me tiles) or --tv-accent (used for primary CTAs and
+     badges). Needs to read as "this one thing is selected" against any
+     thumbnail, busy or plain. */
+  --tv-focus: #ffd60a;
+  --tv-focus-glow: color-mix(in srgb, #ffd60a 55%, transparent);
 }
 
 @theme inline {
@@ -127,6 +136,7 @@
   --color-tv-neutral-700: var(--tv-neutral-700);
   --color-tv-neutral-800: var(--tv-neutral-800);
   --color-tv-neutral-900: var(--tv-neutral-900);
+  --color-tv-focus: var(--tv-focus);
   --font-tv: var(--font-tv-inter);
 
   --animate-tv-eq: tv-eq 1.2s ease-in-out infinite;
@@ -175,10 +185,26 @@
 .tv-focusable {
   transition: transform 200ms cubic-bezier(0.2, 0.8, 0.3, 1);
 }
+/* TvHome's row tiles need this as a real class, not an inline style prop
+   (which is how it originally shipped) — an inline `style` box-shadow wins
+   over *any* stylesheet rule regardless of selector specificity, so
+   :focus-visible's own box-shadow below was silently unable to ever
+   override it. That's the actual reason the ring never showed on Home's
+   tiles specifically (NavRail and every other screen's tiles never set a
+   resting box-shadow at all, inline or otherwise, so they were unaffected). */
+.tv-home-tile {
+  box-shadow: var(--tv-shadow-md);
+}
 .tv-focusable:focus-visible {
   outline: none;
   transform: scale(1.04) translateY(-4px);
-  box-shadow: 0 0 0 5px var(--warm), var(--tv-shadow-lg);
+  /* A solid ring alone got lost against a bright/busy thumbnail at a few
+     metres' distance — the added soft glow layer means it still pops even
+     when the ring itself sits right on top of similarly-toned art. */
+  box-shadow:
+    0 0 0 7px var(--tv-focus),
+    0 0 28px 6px var(--tv-focus-glow),
+    var(--tv-shadow-lg);
   position: relative;
   z-index: 10;
 }

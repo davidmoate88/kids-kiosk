@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import ParentsNav from "./ParentsNav";
+import RefreshTvButton from "./RefreshTvButton";
 
 // The real, authoritative check — proxy.ts's `authorized` callback is only
 // an optimistic cookie-only redirect (it has to be, running on every
@@ -23,20 +24,23 @@ export default async function ParentsLayout({ children }: { children: React.Reac
           <span className="font-semibold">Kids Kiosk — Parents</span>
           <ParentsNav />
         </div>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/parents/login" });
-          }}
-        >
-          <button
-            type="submit"
-            className="rounded-lg px-3 py-1.5 text-sm"
-            style={{ border: "1px solid var(--tv-divider)" }}
+        <div className="flex items-center gap-3">
+          <RefreshTvButton />
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/parents/login" });
+            }}
           >
-            Sign out
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="rounded-lg px-3 py-1.5 text-sm"
+              style={{ border: "1px solid var(--tv-divider)" }}
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
       </header>
       <main className="px-6 py-8">{children}</main>
     </div>

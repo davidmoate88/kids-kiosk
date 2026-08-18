@@ -24,7 +24,7 @@ function LoginForm() {
   const callbackUrl =
     callbackRaw && callbackRaw.startsWith("/") && !callbackRaw.startsWith("//")
       ? callbackRaw
-      : "/watch";
+      : "/parents";
 
   return (
     <div
@@ -35,9 +35,9 @@ function LoginForm() {
         className="w-full max-w-sm rounded-xl p-8"
         style={{ background: "var(--tv-surface)", boxShadow: "var(--tv-shadow-md)" }}
       >
-        <h1 className="text-xl font-semibold">Kids Kiosk</h1>
+        <h1 className="text-xl font-semibold">Kids Kiosk — Parents</h1>
         <p className="mt-1 text-sm" style={{ color: "var(--tv-text-muted)" }}>
-          Enter the PIN to unlock.
+          Enter the PIN to manage what&apos;s approved.
         </p>
 
         <form action={formAction} className="mt-6 flex flex-col gap-4">
@@ -70,7 +70,7 @@ function LoginForm() {
             className="mt-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60"
             style={{ background: "var(--tv-accent-300)", color: "var(--tv-bg)" }}
           >
-            {pending ? "Unlocking…" : "Unlock"}
+            {pending ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

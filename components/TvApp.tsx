@@ -17,6 +17,18 @@ type Screen = TvScreen | "detail" | "player";
 
 const FAVOURITES_STORAGE_KEY = "kk_tv_favourites";
 
+// A kiosk WebView loads once and can sit open for days without ever
+// navigating again — force-dynamic pages only pick up new code or newly
+// approved content on an actual fresh request, so without this, a deploy or
+// an approval can go invisible on-screen indefinitely. AUTO_REFRESH bounds
+// that staleness on a timer; the poll interval is short so a parent's
+// "Refresh TV" click (app/parents/(protected)/actions.ts, via
+// lib/refresh-signal.ts) lands in seconds instead of waiting the full
+// interval. Both only ever reload while off the player screen — see
+// reloadIfSafe below.
+const AUTO_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+const FORCE_REFRESH_POLL_INTERVAL_MS = 15 * 1000;
+
 function focusRail() {
   // Next.js's streaming SSR can leave a hidden (display:none) duplicate of
   // the tree in the DOM — offsetParent is null for anything inside it, so
@@ -69,6 +81,53 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
     } catch {
       // corrupt/absent storage — start with no favourites
     }
+  }, []);
+
+  useEffect(() => {
+    function reloadIfSafe() {
+      // Never reload out from under an actually-playing video — only the
+      // browse screens (Home/Search/Detail/...) are safe to interrupt.
+      if (screenRef.current !== "player") {
+        window.location.reload();
+      }
+    }
+
+    const autoTimer = setInterval(reloadIfSafe, AUTO_REFRESH_INTERVAL_MS);
+
+    // undefined = not yet baselined; null is a legitimate signal value
+    // (nobody has clicked "Refresh TV" since the last server restart), so
+    // it can't double as the sentinel.
+    let baseline: number | null | undefined;
+    let cancelled = false;
+
+    async function checkForceRefresh() {
+      try {
+        const res = await fetch("/api/tv/refresh-signal", { cache: "no-store" });
+        const data: { requestedAt: number | null } = await res.json();
+        if (cancelled) return;
+        if (baseline === undefined) {
+          baseline = data.requestedAt;
+          return;
+        }
+        // Deliberately don't advance `baseline` here: if a request lands
+        // while a video is mid-play, reloadIfSafe no-ops, and the next poll
+        // (up to FORCE_REFRESH_POLL_INTERVAL_MS later) sees the same
+        // still-unhandled change and tries again, until it's actually safe.
+        if (data.requestedAt !== baseline) {
+          reloadIfSafe();
+        }
+      } catch {
+        // offline or server mid-restart — next tick tries again
+      }
+    }
+    checkForceRefresh();
+    const pollTimer = setInterval(checkForceRefresh, FORCE_REFRESH_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(autoTimer);
+      clearInterval(pollTimer);
+    };
   }, []);
 
   function toggleFavourite(categoryId: string) {

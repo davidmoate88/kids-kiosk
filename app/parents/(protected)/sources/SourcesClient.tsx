@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import type { catalogues } from "@/db/schema";
+import { suggestFolder } from "@/lib/folder-suggest";
 import {
   addCatalogue,
   type AddCatalogueState,
@@ -39,6 +40,12 @@ export default function SourcesClient({
   const [state, formAction, pending] = useActionState<AddCatalogueState, FormData>(addCatalogueAction, undefined);
   const [, startTransition] = useTransition();
   const folderSuggestions = [...new Set([...DEFAULT_FOLDER_SUGGESTIONS, ...catalogues.map((c) => c.folder)])];
+
+  // Auto-fills the folder field from the display name as the parent types,
+  // via lib/folder-suggest's keyword heuristic — stops the moment they edit
+  // the folder field themselves, so a deliberate choice is never clobbered.
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const [folderTouched, setFolderTouched] = useState(false);
 
   return (
     <div className="flex flex-col gap-8">
@@ -141,13 +148,19 @@ export default function SourcesClient({
             placeholder="Display name"
             className="min-w-40 flex-1 rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
+            onChange={(e) => {
+              if (folderTouched || !folderInputRef.current) return;
+              folderInputRef.current.value = suggestFolder(e.target.value);
+            }}
           />
           <input
+            ref={folderInputRef}
             name="folder"
-            placeholder="Folder"
+            placeholder="Folder (auto-filled from the name)"
             list="folder-suggestions"
-            className="w-40 rounded-lg px-3 py-2 text-sm"
+            className="w-56 rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
+            onChange={() => setFolderTouched(true)}
           />
           <datalist id="folder-suggestions">
             {folderSuggestions.map((f) => (

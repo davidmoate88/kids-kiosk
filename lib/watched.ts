@@ -6,11 +6,10 @@ import { getDb } from "@/db";
 import { episodes, watchedContent, watchHistory } from "@/db/schema";
 
 // Called from TvPlayer.tsx's onEnded and WatchClient.tsx's YouTube "ended"
-// handler, whenever a video plays to completion. Always updates
-// watchedContent (the global "watched to completion" checkmark). When a
-// profileId is provided (from ProfileContext on the phone/tablet — TV
-// kiosk has no profile), also appends a row to watchHistory to power the
-// per-kid /history page.
+// handler, whenever a video plays to completion. Updates watchedContent
+// (the global "watched to completion" checkmark) and always appends a row
+// to watchHistory (the shared, household-wide watch log — see its comment
+// in db/schema.ts for why this isn't split per profile).
 //
 // `videoId` is whatever ApprovedVideo.id already is for that source (see
 // lib/watch-folders.ts): for YouTube that's the external YouTube video id
@@ -23,7 +22,6 @@ export async function markWatched(
   source: "youtube" | "stremio",
   videoId: string,
   mediaType?: "movie" | "series",
-  profileId?: string | null,
 ): Promise<void> {
   const db = getDb();
 
@@ -40,24 +38,18 @@ export async function markWatched(
 
     const values = { source: "youtube" as const, episodeId: episode.id };
     await db.insert(watchedContent).values(values).onConflictDoNothing({ target: watchedContent.episodeId });
-    if (profileId) {
-      await db.insert(watchHistory).values({ ...values, profileId });
-    }
+    await db.insert(watchHistory).values(values);
   } else if (mediaType === "movie") {
     const values = { source: "stremio" as const, stremioTitleId: videoId };
     await db.insert(watchedContent).values(values).onConflictDoNothing({ target: watchedContent.stremioTitleId });
-    if (profileId) {
-      await db.insert(watchHistory).values({ ...values, profileId });
-    }
+    await db.insert(watchHistory).values(values);
   } else {
     const values = { source: "stremio" as const, stremioEpisodeId: videoId };
     await db.insert(watchedContent).values(values).onConflictDoNothing({ target: watchedContent.stremioEpisodeId });
-    if (profileId) {
-      await db.insert(watchHistory).values({ ...values, profileId });
-    }
+    await db.insert(watchHistory).values(values);
   }
 
   revalidatePath("/tv");
   revalidatePath("/watch");
-  if (profileId) revalidatePath("/history");
+  revalidatePath("/history");
 }

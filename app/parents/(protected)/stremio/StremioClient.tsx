@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import type { stremioTrustedRows } from "@/db/schema";
+import { FOLDER_TAXONOMY, suggestFolder } from "@/lib/folder-suggest";
 import type {
   CatalogItem,
   CatalogRow,
@@ -23,7 +24,6 @@ import {
 type TrustedRow = typeof stremioTrustedRows.$inferSelect;
 type ResultItem = { imdbId: string; mediaType: StremioMediaType; name: string; posterUrl?: string };
 
-const FOLDER_SUGGESTIONS = ["Songs & Learning", "Shows", "Vehicles"];
 const fieldStyle = { background: "var(--tv-bg)", border: "1px solid var(--tv-divider)" } as const;
 
 function resultKey(item: ResultItem) {
@@ -33,14 +33,18 @@ function resultKey(item: ResultItem) {
 function ResultCard({
   item,
   approved,
-  folder,
   onApprove,
 }: {
   item: ResultItem;
   approved: boolean;
-  folder: string;
-  onApprove: () => void;
+  onApprove: (folder: string) => void;
 }) {
+  // Auto-suggested from the title (lib/folder-suggest) and editable right
+  // here — a single page-wide folder field (the old design) couldn't
+  // represent "this truck video and that superhero movie, approved back to
+  // back, belong in different folders," which was the actual gap.
+  const [folder, setFolder] = useState<string>(() => suggestFolder(item.name));
+
   return (
     <div className="flex items-center gap-3 rounded-lg p-3" style={{ background: "var(--tv-surface)" }}>
       {item.posterUrl ? (
@@ -59,22 +63,93 @@ function ResultCard({
         <button
           type="button"
           disabled={approved}
-          onClick={onApprove}
+          onClick={() => onApprove(folder)}
           className="rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-60"
           style={{ background: "var(--tv-accent-300)", color: "var(--tv-bg)" }}
         >
           {approved ? "Approved" : "Approve"}
         </button>
-        {/* The folder field lives once at the top of the page and can easily
-            scroll out of view — this makes the actual destination visible
-            right where the decision to approve happens, not something you
-            have to scroll up and re-check. */}
         {!approved && (
-          <span className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
-            → {folder || "no folder set"}
-          </span>
+          <input
+            value={folder}
+            onChange={(e) => setFolder(e.target.value)}
+            list="stremio-folder-suggestions"
+            className="w-32 rounded px-1.5 py-0.5 text-right text-xs"
+            style={fieldStyle}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+// Mirrors ResultCard's per-item suggestion for the not-yet-trusted rows in
+// the "Trust whole rows" list below — same reasoning, one row per platform
+// catalog rather than one field for the whole page. Once a row IS trusted,
+// its folder becomes a real DB column (see actions.ts's updateTrustedRowFolder)
+// and this same input switches to editing that directly on blur, matching
+// the pattern sources/SourcesClient.tsx already uses for YouTube catalogues.
+function TrustRowCard({
+  row,
+  trusted,
+  onToggleTrust,
+  onUpdateFolder,
+  onSyncNow,
+}: {
+  row: CatalogRow;
+  trusted: TrustedRow | undefined;
+  onToggleTrust: (folder: string) => void;
+  onUpdateFolder: (folder: string) => void;
+  onSyncNow: () => void;
+}) {
+  const [folder, setFolder] = useState<string>(() => trusted?.folder ?? suggestFolder(row.name));
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg p-3" style={{ background: "var(--tv-surface)" }}>
+      <div className="min-w-40 flex-1 text-sm">
+        <div className="font-medium">
+          {row.name} <span style={{ color: "var(--tv-text-muted)" }}>({row.type})</span>
+        </div>
+        {trusted && (
+          <div className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
+            {trusted.status === "error"
+              ? "last sync failed"
+              : trusted.lastSyncAt
+                ? `synced ${new Date(trusted.lastSyncAt).toLocaleDateString("en-GB")}`
+                : "not synced yet"}
+          </div>
+        )}
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        Folder
+        <input
+          defaultValue={folder}
+          list="stremio-folder-suggestions"
+          className="w-40 rounded-lg px-2 py-1 text-sm"
+          style={fieldStyle}
+          onChange={(e) => setFolder(e.target.value)}
+          onBlur={(e) => {
+            if (!trusted) return;
+            const next = e.target.value.trim();
+            if (!next || next === trusted.folder) return;
+            onUpdateFolder(next);
+          }}
+        />
+      </label>
+      {trusted && (
+        <button
+          type="button"
+          onClick={onSyncNow}
+          className="rounded-lg px-3 py-1.5 text-sm"
+          style={{ border: "1px solid var(--tv-divider)" }}
+        >
+          Sync now
+        </button>
+      )}
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={Boolean(trusted)} onChange={() => onToggleTrust(folder)} />
+        Trusted
+      </label>
     </div>
   );
 }
@@ -139,11 +214,10 @@ export default function StremioClient({
   filterOptionsByType: Record<StremioMediaType, FilterOptions>;
 }) {
   const [, startTransition] = useTransition();
-  const [folder, setFolder] = useState("Shows");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
   const [approvedCount, setApprovedCount] = useState(0);
 
-  function approve(item: ResultItem) {
+  function approve(item: ResultItem, folder: string) {
     setApprovedIds((prev) => new Set(prev).add(resultKey(item)));
     setApprovedCount((c) => c + 1);
     startTransition(() => {
@@ -240,7 +314,7 @@ export default function StremioClient({
   const [rowFilter, setRowFilter] = useState("");
   const trustedByCatalogId = new Map(trustedRows.map((r) => [r.catalogId, r]));
 
-  function toggleTrust(row: CatalogRow, trusted: TrustedRow | undefined) {
+  function toggleTrust(row: CatalogRow, trusted: TrustedRow | undefined, folder: string) {
     startTransition(() => {
       if (trusted) untrustCatalogRow(trusted.id);
       else trustCatalogRow({ catalogId: row.id, mediaType: row.type, label: row.name, folder });
@@ -249,28 +323,16 @@ export default function StremioClient({
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex flex-wrap items-center gap-3 rounded-lg p-4" style={{ background: "var(--tv-surface)" }}>
-        <label className="flex items-center gap-2 text-sm">
-          <span className="font-medium">Folder for new approvals</span>
-          <input
-            value={folder}
-            onChange={(e) => setFolder(e.target.value)}
-            list="stremio-folder-suggestions"
-            className="w-44 rounded-lg px-3 py-2 text-sm"
-            style={fieldStyle}
-          />
-          <datalist id="stremio-folder-suggestions">
-            {FOLDER_SUGGESTIONS.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
-        </label>
-        {approvedCount > 0 && (
-          <span className="text-sm" style={{ color: "var(--tv-text-muted)" }}>
-            {approvedCount} approved this session
-          </span>
-        )}
-      </div>
+      <datalist id="stremio-folder-suggestions">
+        {FOLDER_TAXONOMY.map((f) => (
+          <option key={f} value={f} />
+        ))}
+      </datalist>
+      {approvedCount > 0 && (
+        <p className="text-sm" style={{ color: "var(--tv-text-muted)" }}>
+          {approvedCount} approved this session
+        </p>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Search &amp; approve</h2>
@@ -319,8 +381,7 @@ export default function StremioClient({
                 key={resultKey(item)}
                 item={item}
                 approved={approvedIds.has(resultKey(item))}
-                folder={folder}
-                onApprove={() => approve(item)}
+                onApprove={(folder) => approve(item, folder)}
               />
             ))}
           </div>
@@ -396,8 +457,7 @@ export default function StremioClient({
                     key={resultKey(item)}
                     item={item}
                     approved={approvedIds.has(resultKey(item))}
-                    folder={folder}
-                    onApprove={() => approve(item)}
+                    onApprove={(folder) => approve(item, folder)}
                   />
                 ))}
               </div>
@@ -459,70 +519,24 @@ export default function StremioClient({
           {catalogRows
             .filter((row) => row.name.toLowerCase().includes(rowFilter.toLowerCase()))
             .map((row) => {
-            const trusted = trustedByCatalogId.get(row.id);
-            return (
-              <div
-                key={row.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg p-3"
-                style={{ background: "var(--tv-surface)" }}
-              >
-                <div className="min-w-40 flex-1 text-sm">
-                  <div className="font-medium">
-                    {row.name} <span style={{ color: "var(--tv-text-muted)" }}>({row.type})</span>
-                  </div>
-                  {trusted && (
-                    <div className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
-                      {trusted.status === "error"
-                        ? "last sync failed"
-                        : trusted.lastSyncAt
-                          ? `synced ${new Date(trusted.lastSyncAt).toLocaleDateString("en-GB")}`
-                          : "not synced yet"}
-                    </div>
-                  )}
-                </div>
-                {trusted && (
-                  // Parity with YouTube catalogues (sources/SourcesClient.tsx)
-                  // — same edit-on-blur pattern, added in v1.1. Only shown for
-                  // already-trusted rows, since folder is only meaningful once
-                  // a row has one (set at trust time).
-                  <label className="flex items-center gap-2 text-sm">
-                    Folder
-                    <input
-                      defaultValue={trusted.folder}
-                      list="stremio-folder-suggestions"
-                      className="w-40 rounded-lg px-2 py-1 text-sm"
-                      style={fieldStyle}
-                      onBlur={(e) => {
-                        const next = e.target.value.trim();
-                        if (!next || next === trusted.folder) return;
-                        startTransition(() => {
-                          updateTrustedRowFolder(trusted.id, next);
-                        });
-                      }}
-                    />
-                  </label>
-                )}
-                {trusted && (
-                  <button
-                    type="button"
-                    onClick={() => startTransition(() => syncTrustedRowNow(trusted.id))}
-                    className="rounded-lg px-3 py-1.5 text-sm"
-                    style={{ border: "1px solid var(--tv-divider)" }}
-                  >
-                    Sync now
-                  </button>
-                )}
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(trusted)}
-                    onChange={() => toggleTrust(row, trusted)}
-                  />
-                  Trusted
-                </label>
-              </div>
-            );
-          })}
+              const trusted = trustedByCatalogId.get(row.id);
+              return (
+                <TrustRowCard
+                  key={row.id}
+                  row={row}
+                  trusted={trusted}
+                  onToggleTrust={(folder) => toggleTrust(row, trusted, folder)}
+                  onUpdateFolder={(next) => {
+                    if (!trusted) return;
+                    startTransition(() => updateTrustedRowFolder(trusted.id, next));
+                  }}
+                  onSyncNow={() => {
+                    if (!trusted) return;
+                    startTransition(() => syncTrustedRowNow(trusted.id));
+                  }}
+                />
+              );
+            })}
         </div>
       </section>
     </div>
