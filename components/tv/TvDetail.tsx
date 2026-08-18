@@ -144,6 +144,12 @@ export default function TvDetail({
   }
 
   const firstVideo = category.videos[0];
+  // A merged category (see lib/watch-folders.ts) can genuinely have both —
+  // firstVideo?.source alone would just report whichever source happened to
+  // be pooled first, not what's actually available.
+  const hasYouTube = category.videos.some((v) => v.source === "youtube");
+  const hasStremio = category.videos.some((v) => v.source === "stremio");
+  const sourceLabel = hasYouTube && hasStremio ? "YouTube + Stremio" : hasStremio ? "Stremio" : "YouTube";
 
   return (
     <div
@@ -175,7 +181,7 @@ export default function TvDetail({
           className="rounded-full px-3 py-1 text-base"
           style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
         >
-          {firstVideo?.source === "stremio" ? "Stremio" : "YouTube"}
+          {sourceLabel}
         </span>
       </p>
 

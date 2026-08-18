@@ -354,7 +354,14 @@ export default function TvSearch({
                   className="rounded-full px-2.5 py-0.5 text-sm"
                   style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
                 >
-                  {focusedResult.videos[0]?.source === "stremio" ? "Stremio" : "YouTube"}
+                  {(() => {
+                    // A merged category (see lib/watch-folders.ts) can have
+                    // both — videos[0]?.source alone would just report
+                    // whichever source happened to be pooled first.
+                    const hasYouTube = focusedResult.videos.some((v) => v.source === "youtube");
+                    const hasStremio = focusedResult.videos.some((v) => v.source === "stremio");
+                    return hasYouTube && hasStremio ? "YouTube + Stremio" : hasStremio ? "Stremio" : "YouTube";
+                  })()}
                 </span>
               </p>
               <p className="mt-2 max-w-[500px] text-base" style={{ color: "var(--tv-text-muted)" }}>
@@ -393,17 +400,20 @@ export default function TvSearch({
                   <img src={categoryThumbnail(c)} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                {c.videos[0]?.source === "stremio" && (
+                {(() => {
                   // Same disambiguation as Home rows — a search is exactly where a
                   // YouTube-clips result and a Stremio-series result for the same
                   // name are most likely to land side by side.
-                  <span
-                    className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
-                  >
-                    {c.videos.length > 1 ? "Series" : "Movie"}
-                  </span>
-                )}
+                  const stremioVideo = c.videos.find((v) => v.source === "stremio");
+                  return stremioVideo ? (
+                    <span
+                      className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                    >
+                      {stremioVideo.mediaType === "movie" ? "Movie" : "Series"}
+                    </span>
+                  ) : null;
+                })()}
                 {c.videos.length > 0 && c.videos.every((v) => v.watched) && (
                   <span
                     className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full"

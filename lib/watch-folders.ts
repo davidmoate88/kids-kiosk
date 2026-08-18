@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import type { VideoCategory, VideoFolder } from "@/components/WatchClient";
 import { getDb } from "@/db";
+import { mergeCategoryId } from "@/lib/category-merge-id";
+import { titleMatchDistance } from "@/lib/fuzzy-match";
 import {
   approvedContent,
   catalogues,
@@ -229,12 +231,55 @@ function groupIntoFolders(categories: (VideoCategory & { folder: string })[]): V
   return folders;
 }
 
+// Same show exists on both sides (e.g. "Bluey" as a YouTube clips channel and
+// a real Stremio series). Pool them into one tile keyed off Stremio's
+// canonical IMDB/Cinemeta name, keeping the YouTube side's folder so the
+// existing per-item rename UI stays authoritative.
+function mergeCrossSourceCategories(
+  youtubeCategories: (VideoCategory & { folder: string })[],
+  stremioCategories: (VideoCategory & { folder: string })[]
+): (VideoCategory & { folder: string })[] {
+  const matchedYoutube = new Set<string>();
+  const merged: (VideoCategory & { folder: string })[] = [];
+
+  for (const stremioCat of stremioCategories) {
+    // Best match, not first match — picking whichever unmatched YouTube
+    // category is closest (by edit distance) avoids depending on raw query
+    // order to decide between a weak fuzzy candidate and an exact one.
+    let best: { cat: VideoCategory & { folder: string }; distance: number } | null = null;
+    for (const c of youtubeCategories) {
+      if (matchedYoutube.has(c.id)) continue;
+      const distance = titleMatchDistance(c.label, stremioCat.label);
+      if (distance !== null && (!best || distance < best.distance)) best = { cat: c, distance };
+    }
+    const youtubeCat = best?.cat;
+    if (!youtubeCat) {
+      merged.push(stremioCat);
+      continue;
+    }
+    matchedYoutube.add(youtubeCat.id);
+    merged.push({
+      id: mergeCategoryId(stremioCat.id, youtubeCat.id),
+      label: stremioCat.label,
+      emoji: stremioCat.emoji,
+      videos: [...stremioCat.videos, ...youtubeCat.videos],
+      folder: youtubeCat.folder,
+    });
+  }
+
+  for (const youtubeCat of youtubeCategories) {
+    if (!matchedYoutube.has(youtubeCat.id)) merged.push(youtubeCat);
+  }
+
+  return merged;
+}
+
 export async function getWatchFolders(): Promise<VideoFolder[]> {
   const [youtubeCategories, stremioCategories] = await Promise.all([
     getYouTubeCategories(),
     getStremioCategories(),
   ]);
-  return groupIntoFolders([...youtubeCategories, ...stremioCategories]);
+  return groupIntoFolders(mergeCrossSourceCategories(youtubeCategories, stremioCategories));
 }
 
 // /watch has no Stremio playback engine (v1 scope is /tv-only — see the

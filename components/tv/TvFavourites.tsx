@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
+import { categoryMatchesFavourite } from "@/lib/category-merge-id";
 import { categoryThumbnail } from "@/lib/youtube-thumbs";
 import { focusNearest, rememberFocus } from "@/lib/tv-focus";
 import { HeartIcon, CheckIcon } from "./icons";
@@ -19,7 +20,7 @@ export default function TvFavourites({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const favourites = useMemo(
-    () => folders.flatMap((f) => f.categories).filter((c) => favouriteIds.has(c.id)),
+    () => folders.flatMap((f) => f.categories).filter((c) => categoryMatchesFavourite(c.id, favouriteIds)),
     [folders, favouriteIds]
   );
 
@@ -69,14 +70,17 @@ export default function TvFavourites({
                 <img src={categoryThumbnail(c)} alt="" className="absolute inset-0 h-full w-full object-cover" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-              {c.videos[0]?.source === "stremio" && (
-                <span
-                  className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-sm font-medium"
-                  style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
-                >
-                  {c.videos.length > 1 ? "Series" : "Movie"}
-                </span>
-              )}
+              {(() => {
+                const stremioVideo = c.videos.find((v) => v.source === "stremio");
+                return stremioVideo ? (
+                  <span
+                    className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-sm font-medium"
+                    style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                  >
+                    {stremioVideo.mediaType === "movie" ? "Movie" : "Series"}
+                  </span>
+                ) : null;
+              })()}
               {c.videos.length > 0 && c.videos.every((v) => v.watched) && (
                 // Left of the heart icon, not near the bottom title — same
                 // reasoning as Home's tiles (titles here can wrap to 2

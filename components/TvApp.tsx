@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
+import { categoryMatchesFavourite, toggleFavouriteId } from "@/lib/category-merge-id";
 import type { ApprovedVideo } from "@/lib/watch-folders";
 import NavRail, { type TvScreen } from "@/components/tv/NavRail";
 import TvHome from "@/components/tv/TvHome";
@@ -132,9 +133,7 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
 
   function toggleFavourite(categoryId: string) {
     setFavourites((prev) => {
-      const next = new Set(prev);
-      if (next.has(categoryId)) next.delete(categoryId);
-      else next.add(categoryId);
+      const next = toggleFavouriteId(categoryId, prev);
       try {
         localStorage.setItem(FAVOURITES_STORAGE_KEY, JSON.stringify([...next]));
       } catch {
@@ -240,7 +239,7 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
           <TvDetail
             category={activeCategory}
             folders={folders}
-            isFavourite={favourites.has(activeCategory.id)}
+            isFavourite={categoryMatchesFavourite(activeCategory.id, favourites)}
             onToggleFavourite={() => toggleFavourite(activeCategory.id)}
             onPlay={playVideo}
             onBack={() => history.back()}

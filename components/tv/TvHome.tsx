@@ -422,7 +422,7 @@ export default function TvHome({
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    {tile.videos[0]?.source === "stremio" && (
+                    {(() => {
                       // Same title can exist as both a YouTube clips channel and a
                       // real Stremio series/movie (e.g. "Bluey") — this is the only
                       // visual differentiator at row-browsing level, since both
@@ -430,13 +430,16 @@ export default function TvHome({
                       // unbadged (the default/majority case) to avoid cluttering
                       // every row with a label that's only useful when there's an
                       // actual same-name collision to resolve.
-                      <span
-                        className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-sm font-medium"
-                        style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
-                      >
-                        {tile.videos.length > 1 ? "Series" : "Movie"}
-                      </span>
-                    )}
+                      const stremioVideo = tile.videos.find((v) => v.source === "stremio");
+                      return stremioVideo ? (
+                        <span
+                          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-sm font-medium"
+                          style={{ background: "var(--tv-accent-800)", color: "var(--tv-accent-100)" }}
+                        >
+                          {stremioVideo.mediaType === "movie" ? "Movie" : "Series"}
+                        </span>
+                      ) : null;
+                    })()}
                     <span
                       className="absolute bottom-3 left-3 right-3 font-medium"
                       style={{ fontSize: 27, textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
