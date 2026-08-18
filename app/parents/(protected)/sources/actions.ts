@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { catalogues } from "@/db/schema";
+import { folderForType } from "@/lib/folder-suggest";
 import { syncCatalogue } from "@/lib/youtube-sync";
 
 export type AddCatalogueState = { error?: string } | undefined;
@@ -15,13 +16,11 @@ export async function addCatalogue(
   const kind = formData.get("kind");
   const externalId = formData.get("externalId");
   const name = formData.get("name");
-  const folder = formData.get("folder");
   const autoApproveNewEpisodes = formData.get("autoApproveNewEpisodes") === "on";
 
   if (kind !== "channel" && kind !== "playlist") return { error: "Pick a source type." };
   if (typeof externalId !== "string" || !externalId.trim()) return { error: "ID is required." };
   if (typeof name !== "string" || !name.trim()) return { error: "Name is required." };
-  if (typeof folder !== "string" || !folder.trim()) return { error: "Folder is required." };
 
   const db = getDb();
   const trimmedId = externalId.trim();
@@ -30,7 +29,13 @@ export async function addCatalogue(
 
   const [catalogue] = await db
     .insert(catalogues)
-    .values({ kind, externalId: trimmedId, name: name.trim(), folder: folder.trim(), autoApproveNewEpisodes })
+    .values({
+      kind,
+      externalId: trimmedId,
+      name: name.trim(),
+      folder: folderForType("youtube"),
+      autoApproveNewEpisodes,
+    })
     .returning();
 
   try {

@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useActionState, useTransition } from "react";
 import type { catalogues } from "@/db/schema";
-import { suggestFolder } from "@/lib/folder-suggest";
 import {
   addCatalogue,
   type AddCatalogueState,
@@ -40,12 +39,6 @@ export default function SourcesClient({
   const [state, formAction, pending] = useActionState<AddCatalogueState, FormData>(addCatalogueAction, undefined);
   const [, startTransition] = useTransition();
   const folderSuggestions = [...new Set([...DEFAULT_FOLDER_SUGGESTIONS, ...catalogues.map((c) => c.folder)])];
-
-  // Auto-fills the folder field from the display name as the parent types,
-  // via lib/folder-suggest's keyword heuristic — stops the moment they edit
-  // the folder field themselves, so a deliberate choice is never clobbered.
-  const folderInputRef = useRef<HTMLInputElement>(null);
-  const [folderTouched, setFolderTouched] = useState(false);
 
   return (
     <div className="flex flex-col gap-8">
@@ -148,19 +141,6 @@ export default function SourcesClient({
             placeholder="Display name"
             className="min-w-40 flex-1 rounded-lg px-3 py-2 text-sm"
             style={fieldStyle}
-            onChange={(e) => {
-              if (folderTouched || !folderInputRef.current) return;
-              folderInputRef.current.value = suggestFolder(e.target.value);
-            }}
-          />
-          <input
-            ref={folderInputRef}
-            name="folder"
-            placeholder="Folder (auto-filled from the name)"
-            list="folder-suggestions"
-            className="w-56 rounded-lg px-3 py-2 text-sm"
-            style={fieldStyle}
-            onChange={() => setFolderTouched(true)}
           />
           <datalist id="folder-suggestions">
             {folderSuggestions.map((f) => (
@@ -168,6 +148,10 @@ export default function SourcesClient({
             ))}
           </datalist>
         </div>
+        <p className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
+          Folder is assigned automatically (YouTube sources go to &ldquo;Songs &amp;
+          Learning&rdquo;) — rename it from the list above once it&apos;s added.
+        </p>
         <p className="text-xs" style={{ color: "var(--tv-text-muted)" }}>
           Channel ID is the &ldquo;UC…&rdquo; string from the channel&apos;s &ldquo;About&rdquo;
           page. Playlist ID is the &ldquo;list=&rdquo; value from the playlist&apos;s URL. The
