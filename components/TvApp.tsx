@@ -30,6 +30,14 @@ const FAVOURITES_STORAGE_KEY = "kk_tv_favourites";
 const AUTO_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const FORCE_REFRESH_POLL_INTERVAL_MS = 15 * 1000;
 
+// A touchscreen tablet has no equivalent to "the remote hasn't moved in a
+// while" — a kid can be mid-tap or mid-scroll on Home/Search at the exact
+// moment a reload fires, which reads as the app randomly glitching. Holding
+// off until interaction has been quiet for a beat avoids catching someone
+// mid-gesture; on the TV (mostly sitting on the player screen, which is
+// already excluded below) this rarely changes anything.
+const INTERACTION_QUIET_MS = 2 * 1000;
+
 function focusRail() {
   // Next.js's streaming SSR can leave a hidden (display:none) duplicate of
   // the tree in the DOM — offsetParent is null for anything inside it, so
@@ -62,6 +70,7 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
   const markerArmedRef = useRef(false);
   const screenRef = useRef(screen);
   const nextCardOpenRef = useRef(nextCardOpen);
+  const lastInteractionRef = useRef(0);
 
   useEffect(() => {
     screenRef.current = screen;
@@ -85,10 +94,19 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
   }, []);
 
   useEffect(() => {
+    function markInteraction() {
+      lastInteractionRef.current = Date.now();
+    }
+    window.addEventListener("pointerdown", markInteraction);
+    window.addEventListener("keydown", markInteraction);
+
     function reloadIfSafe() {
       // Never reload out from under an actually-playing video — only the
-      // browse screens (Home/Search/Detail/...) are safe to interrupt.
-      if (screenRef.current !== "player") {
+      // browse screens (Home/Search/Detail/...) are safe to interrupt. Also
+      // hold off mid-gesture on a touch device (see INTERACTION_QUIET_MS) —
+      // the force-refresh poll below retries every tick until this passes,
+      // same as it already does for the player-screen check.
+      if (screenRef.current !== "player" && Date.now() - lastInteractionRef.current > INTERACTION_QUIET_MS) {
         window.location.reload();
       }
     }
@@ -128,6 +146,8 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
       cancelled = true;
       clearInterval(autoTimer);
       clearInterval(pollTimer);
+      window.removeEventListener("pointerdown", markInteraction);
+      window.removeEventListener("keydown", markInteraction);
     };
   }, []);
 
@@ -206,7 +226,16 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
   const hasContent = folders.some((f) => f.categories.length > 0);
   if (!hasContent) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: "var(--tv-bg)" }}>
+      <div
+        className="fixed inset-0 flex items-center justify-center overflow-auto"
+        // "safe center" (inline, overriding the Tailwind items-/justify-center
+        // classes): plain `center` alignment on a flex item bigger than its
+        // container pushes half the overflow into space most browsers won't
+        // let you scroll into — content stays centered when it fits (the
+        // common case) but falls back to start-aligned, fully reachable via
+        // scroll, once the scale floor (lib/use-tv-scale.ts) makes it not fit.
+        style={{ background: "var(--tv-bg)", alignItems: "safe center", justifyContent: "safe center" }}
+      >
         {/* shrink-0: without it, this is a flex item with no flex-shrink
             override, so the flex algorithm compresses its *width* (not
             height — items-center doesn't stretch the cross axis) to fit
