@@ -97,18 +97,42 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
     function markInteraction() {
       lastInteractionRef.current = Date.now();
     }
+    // pointerdown alone only marks the *start* of a gesture — a long press,
+    // slow drag, or inertial scroll can run past INTERACTION_QUIET_MS while
+    // still active. Keep refreshing the timestamp for the gesture's
+    // lifetime so reloadIfSafe's quiet check reflects when it actually ended.
     window.addEventListener("pointerdown", markInteraction);
+    window.addEventListener("pointermove", markInteraction);
+    window.addEventListener("pointerup", markInteraction);
+    window.addEventListener("pointercancel", markInteraction);
+    window.addEventListener("scroll", markInteraction, { passive: true });
     window.addEventListener("keydown", markInteraction);
+
+    // Guards reloadIfSafe's self-retry (below) so a still-blocked reload
+    // schedules at most one pending retry instead of piling one up per call.
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     function reloadIfSafe() {
       // Never reload out from under an actually-playing video — only the
-      // browse screens (Home/Search/Detail/...) are safe to interrupt. Also
-      // hold off mid-gesture on a touch device (see INTERACTION_QUIET_MS) —
-      // the force-refresh poll below retries every tick until this passes,
-      // same as it already does for the player-screen check.
-      if (screenRef.current !== "player" && Date.now() - lastInteractionRef.current > INTERACTION_QUIET_MS) {
-        window.location.reload();
+      // browse screens (Home/Search/Detail/...) are safe to interrupt.
+      if (screenRef.current === "player") return;
+
+      // Hold off mid-gesture on a touch device (see INTERACTION_QUIET_MS).
+      // Rather than just waiting for the next poll/timer tick — up to 30min
+      // away for the plain auto-refresh — retry as soon as the quiet window
+      // itself elapses, so a blocked reload doesn't go stale.
+      const remaining = INTERACTION_QUIET_MS - (Date.now() - lastInteractionRef.current);
+      if (remaining > 0) {
+        if (retryTimer === null) {
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            reloadIfSafe();
+          }, remaining);
+        }
+        return;
       }
+
+      window.location.reload();
     }
 
     const autoTimer = setInterval(reloadIfSafe, AUTO_REFRESH_INTERVAL_MS);
@@ -146,7 +170,12 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
       cancelled = true;
       clearInterval(autoTimer);
       clearInterval(pollTimer);
+      if (retryTimer !== null) clearTimeout(retryTimer);
       window.removeEventListener("pointerdown", markInteraction);
+      window.removeEventListener("pointermove", markInteraction);
+      window.removeEventListener("pointerup", markInteraction);
+      window.removeEventListener("pointercancel", markInteraction);
+      window.removeEventListener("scroll", markInteraction);
       window.removeEventListener("keydown", markInteraction);
     };
   }, []);
@@ -249,7 +278,13 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden" style={{ background: "var(--tv-bg)" }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center overflow-auto"
+      // safe center: see the comment on the equivalent !hasContent branch
+      // above — same reasoning applies here now that the scale floor
+      // (lib/use-tv-scale.ts) can make this canvas not fit either.
+      style={{ background: "var(--tv-bg)", alignItems: "safe center", justifyContent: "safe center" }}
+    >
       {/* shrink-0: see the comment on the equivalent !hasContent branch above.
           Each screen's root uses peer-focus-within: (not group-focus-within:)
           to shift its content only while the rail is actually expanded — see
