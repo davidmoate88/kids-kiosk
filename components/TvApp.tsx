@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { VideoFolder, VideoCategory } from "@/components/WatchClient";
 import { categoryMatchesFavourite, toggleFavouriteId } from "@/lib/category-merge-id";
 import type { ApprovedVideo } from "@/lib/watch-folders";
@@ -37,6 +38,43 @@ const FORCE_REFRESH_POLL_INTERVAL_MS = 15 * 1000;
 // mid-gesture; on the TV (mostly sitting on the player screen, which is
 // already excluded below) this rarely changes anything.
 const INTERACTION_QUIET_MS = 2 * 1000;
+
+// The TV design is a fixed 1920×1080 canvas (lib/use-tv-scale.ts) visually
+// scaled to the viewport via a CSS transform. CSS `transform: scale()` does
+// NOT shrink the element's layout footprint — flexbox and scroll-overflow
+// keep measuring the phantom pre-transform 1920×1080 box, which makes the
+// wrapper scroll/center against the wrong size and pins the scaled canvas
+// into a corner. So this wrapper is sized to the ACTUAL visual (post-scale)
+// dimensions (1920*scale × 1080*scale) — that's what flex/overflow measure —
+// and the real 1920×1080 canvas lives inside it, scaled from the top-left
+// corner so it exactly fills the wrapper.
+function TvCanvas({
+  scale,
+  children,
+}: {
+  scale: number;
+  children: ReactNode;
+}) {
+  return (
+    // shrink-0: without it, this is a flex item with no flex-shrink
+    // override, so the flex algorithm compresses this wrapper's *width*
+    // to fit the viewport on top of the scale already applied below,
+    // shrinking the canvas twice. overflow-hidden: the inner div's own
+    // layout box is still the pre-transform 1920×1080 (only its rendered
+    // pixels shrink) — without this, that phantom footprint could bleed
+    // past this wrapper's real (post-scale) bounds into the outer
+    // scroll container's overflow, reintroducing the same bug this
+    // wrapper exists to fix.
+    <div className="shrink-0 overflow-hidden" style={{ width: 1920 * scale, height: 1080 * scale }}>
+      <div
+        className="relative"
+        style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 function focusRail() {
   // Next.js's streaming SSR can leave a hidden (display:none) duplicate of
@@ -265,14 +303,9 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
         // scroll, once the scale floor (lib/use-tv-scale.ts) makes it not fit.
         style={{ background: "var(--tv-bg)", alignItems: "safe center", justifyContent: "safe center" }}
       >
-        {/* shrink-0: without it, this is a flex item with no flex-shrink
-            override, so the flex algorithm compresses its *width* (not
-            height — items-center doesn't stretch the cross axis) to fit
-            the viewport, on top of — not instead of — the scale transform
-            below. That compounds into a squashed, non-uniform result. */}
-        <div className="shrink-0" style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "center center" }}>
+        <TvCanvas scale={scale}>
           <TvNothingYet />
-        </div>
+        </TvCanvas>
       </div>
     );
   }
@@ -285,14 +318,10 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
       // (lib/use-tv-scale.ts) can make this canvas not fit either.
       style={{ background: "var(--tv-bg)", alignItems: "safe center", justifyContent: "safe center" }}
     >
-      {/* shrink-0: see the comment on the equivalent !hasContent branch above.
-          Each screen's root uses peer-focus-within: (not group-focus-within:)
+      {/* Each screen's root uses peer-focus-within: (not group-focus-within:)
           to shift its content only while the rail is actually expanded — see
           NavRail's own doc comment for why it has to be peer, not group. */}
-      <div
-        className="relative shrink-0"
-        style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "center center" }}
-      >
+      <TvCanvas scale={scale}>
         {screen !== "player" && <NavRail active={railActive} onNavigate={navigate} />}
 
         {screen === "home" && (
@@ -342,7 +371,7 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
             onGoToRail={focusRail}
           />
         )}
-      </div>
+      </TvCanvas>
     </div>
   );
 }
