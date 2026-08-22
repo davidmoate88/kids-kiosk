@@ -48,6 +48,13 @@ const INTERACTION_QUIET_MS = 2 * 1000;
 // dimensions (1920*scale × 1080*scale) — that's what flex/overflow measure —
 // and the real 1920×1080 canvas lives inside it, scaled from the top-left
 // corner so it exactly fills the wrapper.
+//
+// margin: auto (not the parent's `justify-content`/`align-items`) is what
+// centers this wrapper — see the comment on the parent container below for
+// why: it centers when the canvas fits and safely falls back to reachable
+// start-alignment when it doesn't, without relying on the CSS `safe`
+// alignment keyword, which older/frozen WebView Chromium builds (e.g. some
+// Android TV boxes) silently drop.
 function TvCanvas({
   scale,
   children,
@@ -65,7 +72,7 @@ function TvCanvas({
     // past this wrapper's real (post-scale) bounds into the outer
     // scroll container's overflow, reintroducing the same bug this
     // wrapper exists to fix.
-    <div className="shrink-0 overflow-hidden" style={{ width: 1920 * scale, height: 1080 * scale }}>
+    <div className="shrink-0 overflow-hidden" style={{ width: 1920 * scale, height: 1080 * scale, margin: "auto" }}>
       <div
         className="relative"
         style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}
@@ -143,7 +150,12 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
     window.addEventListener("pointermove", markInteraction);
     window.addEventListener("pointerup", markInteraction);
     window.addEventListener("pointercancel", markInteraction);
-    window.addEventListener("scroll", markInteraction, { passive: true });
+    // The actual scrollable element is the overflow-auto canvas wrapper (a
+    // descendant), not window — and `scroll` events don't bubble, so a
+    // bubble-phase listener on window would never fire for it. Listening
+    // during the capture phase catches it regardless: capturing dispatch
+    // runs top-down from window before the (non-)bubble phase even starts.
+    window.addEventListener("scroll", markInteraction, { passive: true, capture: true });
     window.addEventListener("keydown", markInteraction);
 
     // Guards reloadIfSafe's self-retry (below) so a still-blocked reload
@@ -213,7 +225,7 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
       window.removeEventListener("pointermove", markInteraction);
       window.removeEventListener("pointerup", markInteraction);
       window.removeEventListener("pointercancel", markInteraction);
-      window.removeEventListener("scroll", markInteraction);
+      window.removeEventListener("scroll", markInteraction, { capture: true });
       window.removeEventListener("keydown", markInteraction);
     };
   }, []);
@@ -294,14 +306,14 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
   if (!hasContent) {
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center overflow-auto"
-        // "safe center" (inline, overriding the Tailwind items-/justify-center
-        // classes): plain `center` alignment on a flex item bigger than its
-        // container pushes half the overflow into space most browsers won't
-        // let you scroll into — content stays centered when it fits (the
-        // common case) but falls back to start-aligned, fully reachable via
-        // scroll, once the scale floor (lib/use-tv-scale.ts) makes it not fit.
-        style={{ background: "var(--tv-bg)", alignItems: "safe center", justifyContent: "safe center" }}
+        className="fixed inset-0 flex overflow-auto"
+        // No items-/justify-center here — TvCanvas centers itself via
+        // margin: auto (see its comment) rather than the parent's
+        // alignment, so centering safely falls back to reachable
+        // start-alignment once the scale floor (lib/use-tv-scale.ts) makes
+        // the canvas not fit, without depending on browser support for the
+        // CSS `safe` alignment keyword.
+        style={{ background: "var(--tv-bg)" }}
       >
         <TvCanvas scale={scale}>
           <TvNothingYet />
@@ -312,11 +324,12 @@ export default function TvApp({ folders }: { folders: VideoFolder[] }) {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center overflow-auto"
-      // safe center: see the comment on the equivalent !hasContent branch
-      // above — same reasoning applies here now that the scale floor
-      // (lib/use-tv-scale.ts) can make this canvas not fit either.
-      style={{ background: "var(--tv-bg)", alignItems: "safe center", justifyContent: "safe center" }}
+      className="fixed inset-0 flex overflow-auto"
+      // No items-/justify-center: see the comment on the equivalent
+      // !hasContent branch above — same reasoning applies here now that the
+      // scale floor (lib/use-tv-scale.ts) can make this canvas not fit
+      // either.
+      style={{ background: "var(--tv-bg)" }}
     >
       {/* Each screen's root uses peer-focus-within: (not group-focus-within:)
           to shift its content only while the rail is actually expanded — see
